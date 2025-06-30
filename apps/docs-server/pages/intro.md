@@ -31,7 +31,7 @@ read-docs styling,database,api
 
 agent-stack follows a modern serverless architecture deployed on AWS, with clear separation between layers:
 
-- **Frontend Layer**: React Router v7 with Tailwind CSS handles user interface and routing
+- **Frontend Layer**: React Router v7 with shadcn/ui component library and Tailwind CSS handles user interface and routing
 - **API Layer**: Hono provides TypeScript HTTP endpoints for backend operations  
 - **Data Layer**: Repository pattern abstracts DynamoDB or PostgreSQL databases via Drizzle ORM
 - **Authentication**: Clerk manages user sessions and authentication flows
@@ -40,7 +40,7 @@ agent-stack follows a modern serverless architecture deployed on AWS, with clear
 
 ## Core Components
 
-### 1. Frontend: React Router v7 + Tailwind CSS
+### 1. Frontend: React Router v7 + shadcn/ui + Tailwind CSS
 
 **React Router v7** provides the frontend framework with these key characteristics:
 - **File-based routing** - Routes are defined by file structure in `app/routes/`
@@ -48,6 +48,13 @@ agent-stack follows a modern serverless architecture deployed on AWS, with clear
 - **Form handling** - Routes export `action` functions to handle form submissions
 - **Error boundaries** - Built-in error handling with `ErrorBoundary` exports
 - **TypeScript-first** - Full type safety between loaders, actions, and components
+
+**shadcn/ui** provides the component library foundation:
+- **Copy-paste components** - High-quality, customizable components you own completely
+- **Built on Radix UI** - Accessible primitives with full keyboard navigation and ARIA support
+- **Tailwind CSS styled** - All components use Tailwind for consistent, maintainable styling
+- **TypeScript-native** - Full type safety for component props and variants
+- **Customizable** - Easy to modify and extend components for specific design needs
 
 **Tailwind CSS** handles all styling:
 - **Utility-first** - Styles are applied directly in JSX using class names
@@ -149,7 +156,7 @@ The following documentation pages are available through the `read-docs` command.
 ### Frontend Development
 - **react-router-patterns** - File-based routing conventions, data loading with loaders, form handling with actions, and error boundary patterns
 - **tailwind-guidelines** - Component styling patterns, responsive design conventions, and utility class combinations for common UI elements
-- **ui-components** - Reusable component library patterns, prop interfaces, and composition strategies for building consistent interfaces
+- **shadcn-components** - shadcn/ui component implementation patterns, customization strategies, and best practices for building accessible interfaces
 
 ### Backend Development  
 - **hono-api-patterns** - HTTP endpoint conventions, middleware usage, request/response handling, and error management strategies
@@ -180,7 +187,7 @@ The following documentation pages are available through the `read-docs` command.
 When starting a new feature that involves creating a new page with data loading and styling:
 ```bash
 # Read all relevant documentation before starting
-read-docs react-router-patterns,tailwind-guidelines,repository-pattern
+read-docs react-router-patterns,shadcn-components,tailwind-guidelines,repository-pattern
 ```
 
 When debugging authentication issues:
