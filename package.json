@@ -1,0 +1,25 @@
+{
+  "name": "agent-stack",
+  "version": "0.1.0",
+  "description": "Agent Stack workspace containing docs-server and reference application",
+  "private": true,
+  "scripts": {
+    "docs-server:dev": "pnpm --filter @agent-stack/docs-server dev",
+    "docs-server:build": "pnpm --filter @agent-stack/docs-server build",
+    "docs-server:start": "pnpm --filter @agent-stack/docs-server start",
+    "docs-server:test": "pnpm --filter @agent-stack/docs-server test",
+    "reference-app:dev": "pnpm --filter @agent-stack/reference-app dev",
+    "reference-app:build": "pnpm --filter @agent-stack/reference-app build",
+    "reference-app:deploy": "pnpm --filter @agent-stack/reference-app deploy",
+    "reference-app:test": "pnpm --filter @agent-stack/reference-app test",
+    "install:all": "pnpm install",
+    "build:all": "pnpm --filter '*' build",
+    "test:all": "pnpm --filter '*' test"
+  },
+  "keywords": ["agent-stack", "mcp", "remix", "hono", "sst", "ai", "agent"],
+  "author": "",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*"
+  ]
+} 
