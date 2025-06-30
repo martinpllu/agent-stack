@@ -1,125 +1,33 @@
 # agent-stack: Introduction for AI Agents
 
-## Your Role in the Development Process
+## Your Role
 
-You are working within **agent-stack**, a framework specifically designed to enable AI agents like yourself to build full-stack web applications autonomously. This stack has been carefully curated to provide predictable patterns, explicit conventions, and clear abstractions that make it easier for you to understand application state, debug issues, and make confident changes to codebases.
+You are working within **agent-stack**, a framework designed for AI agents to build full-stack web applications autonomously. The stack provides predictable patterns and clear abstractions optimized for AI reasoning about code.
 
-Your primary objective is to handle routine development tasks - implementing features, fixing bugs, writing tests, and deploying applications - while allowing human engineers to focus on creative problem-solving and strategic decisions. The technologies and patterns in agent-stack have been chosen specifically because they are transparent, well-documented, and follow consistent conventions that align with how AI models reason about code.
+## Documentation Access
 
-## How to Use This Documentation
-
-You have access to detailed documentation for each aspect of agent-stack development through a documentation server. Use the `read-docs` command to access specific documentation pages whenever you need guidance during your work.
-
-### Using the read-docs Command
-
-The `read-docs` command is your primary tool for accessing detailed documentation. You can and should use it at any point during development when you need specific guidance:
+Use `read-docs` to access detailed documentation during development:
 
 ```bash
-# Read a single documentation page
+# Single page
 read-docs styling
 
-# Read multiple pages at once
-read-docs styling,database
-
-# Read all relevant pages for a complex task
+# Multiple pages
 read-docs styling,database,api
 ```
 
-**Important**: Always use `read-docs` to fetch relevant documentation before implementing features, fixing bugs, or making architectural decisions. The documentation contains essential patterns, best practices, and examples that will help you work effectively within agent-stack.
+**Always consult documentation before implementing features or making architectural decisions.**
 
-## Architecture Overview
+## Architecture
 
-agent-stack follows a modern serverless architecture deployed on AWS, with clear separation between layers:
+- **Frontend**: React Router v7 (file-based routing, loaders/actions) + shadcn/ui + Tailwind CSS
+- **API**: Hono for external HTTP endpoints (internal needs use React Router loaders/actions)
+- **Database**: Repository pattern abstracting DynamoDB or PostgreSQL via Drizzle ORM
+- **Auth**: Clerk for user authentication
+- **Infrastructure**: SST v3 deploys to AWS Lambda + CloudFront
+- **Development**: Live local environment with type safety
 
-- **Frontend Layer**: React Router v7 with shadcn/ui component library and Tailwind CSS handles user interface and routing
-- **API Layer**: Hono provides TypeScript HTTP endpoints for backend operations  
-- **Data Layer**: Repository pattern abstracts DynamoDB or PostgreSQL databases via Drizzle ORM
-- **Authentication**: Clerk manages user sessions and authentication flows
-- **Infrastructure**: SST v3 deploys everything to AWS Lambda with CloudFront distribution
-- **Development**: Live local development environment with instant updates and type safety
-
-## Core Components
-
-### 1. Frontend: React Router v7 + shadcn/ui + Tailwind CSS
-
-**React Router v7** provides the frontend framework with these key characteristics:
-- **File-based routing** - Routes are defined by file structure in `app/routes/`
-- **Data loading** - Each route can export `loader` functions for server-side data fetching
-- **Form handling** - Routes export `action` functions to handle form submissions
-- **Error boundaries** - Built-in error handling with `ErrorBoundary` exports
-- **TypeScript-first** - Full type safety between loaders, actions, and components
-
-**shadcn/ui** provides the component library foundation:
-- **Copy-paste components** - High-quality, customizable components you own completely
-- **Built on Radix UI** - Accessible primitives with full keyboard navigation and ARIA support
-- **Tailwind CSS styled** - All components use Tailwind for consistent, maintainable styling
-- **TypeScript-native** - Full type safety for component props and variants
-- **Customizable** - Easy to modify and extend components for specific design needs
-
-**Tailwind CSS** handles all styling:
-- **Utility-first** - Styles are applied directly in JSX using class names
-- **No CSS files** - All styling is visible inline, making it easy to understand and modify
-- **Design system** - Built-in spacing, colors, and responsive patterns
-- **Predictable** - Class names map directly to CSS properties
-
-
-
-### 2. Backend API: Hono
-
-**Hono** provides lightweight HTTP API endpoints for external consumption and operations beyond React Router's capabilities:
-- **External API endpoints** - RESTful APIs intended for consumption by external clients, mobile apps, or third-party integrations
-- **Public API services** - Endpoints that need to be accessible outside the main web application
-- **TypeScript-native** - Full type safety for request/response handling
-- **Simple routing** - Clear URL patterns with parameter extraction
-- **Middleware support** - Authentication, logging, error handling, and rate limiting
-- **JSON-first** - Built-in JSON request/response handling
-- **AWS Lambda optimized** - Designed for serverless deployment
-
-Note: For internal application data needs (loading data for pages, handling form submissions), use React Router's built-in loaders and actions rather than separate API endpoints.
-
-
-### 3. Database Layer: Repository Pattern
-
-The database layer uses a **repository pattern** that abstracts whether you're using DynamoDB or PostgreSQL:
-- **Consistent interface** - Same methods work with both databases
-- **Type-safe operations** - Full TypeScript support for all database operations
-- **Error handling** - Built-in logging and error recovery
-- **Transaction support** - Appropriate to each database type
-
-**DynamoDB Configuration** (cost-optimized):
-- Single table design with GSI (Global Secondary Index) patterns
-- Pay-per-request billing
-- Built-in AWS SDK integration
-
-**PostgreSQL Configuration** (relational data):
-- Aurora Serverless v2 for scale-to-zero
-- Drizzle ORM for type-safe queries and migrations
-- Connection pooling and transaction management
-
-
-### 4. Authentication: Clerk
-
-**Clerk** provides complete user authentication with minimal configuration:
-- **Component-based** - Drop-in React components for sign-in/sign-up flows
-- **Session management** - Automatic token handling and refresh
-- **User management** - Built-in user profiles and settings
-- **Type-safe** - Full TypeScript support for user data and permissions
-
-
-
-### 5. Deployment: SST v3
-
-**SST (Serverless Stack)** handles all AWS infrastructure and deployment:
-- **Infrastructure as Code** - All AWS resources defined in TypeScript
-- **Local development** - Live Lambda development with instant updates
-- **Type-safe config** - Infrastructure configuration with full TypeScript support
-- **AWS best practices** - Security, monitoring, and cost optimization built-in
-
-
-
-## File Organization
-
-agent-stack applications follow a predictable structure:
+## File Structure
 
 ```
 my-app/
@@ -129,71 +37,69 @@ my-app/
 │   └── lib/               # Shared utilities
 ├── api/                   # Hono API endpoints
 ├── lib/                   # Shared business logic
-│   ├── repositories/      # Database abstraction layer
-│   ├── services/          # Business logic services
-│   └── types/             # TypeScript type definitions
-├── tests/                 # Vitest test files
-└── sst.config.ts          # SST deployment configuration
+│   ├── repositories/      # Database abstraction
+│   ├── services/          # Business logic
+│   └── types/             # TypeScript types
+├── tests/                 # Vitest tests
+└── sst.config.ts          # SST deployment config
 ```
 
-## Key Principles for AI Agents
+## Key Principles
 
-When working within agent-stack, keep these principles in mind:
+1. **Follow patterns** - Consistency is built into the stack
+2. **Use TypeScript fully** - Leverage type safety
+3. **Test incrementally** - Write tests as you build
+4. **Read docs proactively** - Use `read-docs` before implementing
 
-1. **Follow established patterns** - The stack is designed for consistency
-2. **Prefer explicit over implicit** - Make intent clear in your code
-3. **Use TypeScript fully** - Leverage type safety for better reliability  
-4. **Test incrementally** - Write tests as you build features
-5. **Monitor and log** - Include observability in your implementations
-6. **Read documentation proactively** - Use `read-docs` before implementing features
+## SST Local Development
 
-This architecture is designed to be transparent and predictable, making it easier for you to understand application state, debug issues, and implement new features confidently.
+- **Running locally**: User runs `npx sst dev` (SST v3)
+- **Never run `npx sst dev` yourself** - Ask user to run it in a separate terminal
+- **Check if running**: Run `find .sst -name "*.server" -type f` - if files exist, app is running
+- **Auto-reload**: Code changes reload automatically (few seconds), infrastructure changes take longer
+- **Logs locations**:
+  - `.sst/log/pulumi.log` - Infrastructure logs
+  - `.sst/lambda/<Function>/<id>.log` - Lambda invocation logs
+  - `.sst/log/web.log` - Web app logs (contains app URL)
+  - `.sst/outputs.json` - Infrastructure outputs (endpoints, etc.)
 
-## Documentation Guide
+## Available Documentation
 
-The following documentation pages are available through the `read-docs` command. Use this command whenever you need detailed guidance for implementing specific aspects of agent-stack applications:
+### Frontend
+- **react-router-patterns** - Routing, loaders, actions, error boundaries
+- **tailwind-guidelines** - Styling patterns and utilities
+- **shadcn-components** - Component patterns and customization
 
-### Frontend Development
-- **react-router-patterns** - File-based routing conventions, data loading with loaders, form handling with actions, and error boundary patterns
-- **tailwind-guidelines** - Component styling patterns, responsive design conventions, and utility class combinations for common UI elements
-- **shadcn-components** - shadcn/ui component implementation patterns, customization strategies, and best practices for building accessible interfaces
+### Backend
+- **hono-api-patterns** - HTTP endpoints and middleware
+- **repository-pattern** - Database abstraction implementation
+- **data-modeling** - Entity design for SQL/NoSQL
 
-### Backend Development  
-- **hono-api-patterns** - HTTP endpoint conventions, middleware usage, request/response handling, and error management strategies
-- **repository-pattern** - Database abstraction layer implementation, consistent interfaces for DynamoDB and PostgreSQL, and transaction handling
-- **data-modeling** - Entity design patterns, relationship modeling, and schema evolution strategies for both SQL and NoSQL approaches
+### Core Systems
+- **clerk-integration** - Authentication and protected routes
+- **security-patterns** - Authorization and validation
+- **testing-strategies** - Unit and integration testing
+- **error-handling** - Consistent error patterns
+- **performance-optimization** - Query and bundle optimization
 
-### Authentication & Security
-- **clerk-integration** - User authentication setup, protected route patterns, session management, and user profile handling
-- **security-patterns** - Authorization strategies, input validation, rate limiting, and secure data handling practices
+### Operations
+- **sst-deployment** - Infrastructure configuration
+- **monitoring-observability** - Logging and metrics
+- **troubleshooting-guide** - Common issues and debugging
 
-### Testing & Quality
-- **testing-strategies** - Unit testing with Vitest, integration testing approaches, and mocking patterns for repositories and external services
-- **error-handling** - Consistent error handling patterns, logging strategies, and graceful degradation techniques
-- **performance-optimization** - Database query optimization, caching strategies, and bundle size management
-
-### Deployment & Operations
-- **sst-deployment** - Infrastructure configuration, environment management, and AWS resource setup
-- **monitoring-observability** - Logging patterns, metrics collection, error tracking, and application health monitoring
-- **troubleshooting-guide** - Common issues, debugging strategies, and resolution patterns for development and production environments
-
-### Development Workflow
-- **project-setup** - Initial project scaffolding, dependency management, and development environment configuration
-- **feature-development** - Step-by-step feature implementation workflow, from requirements to deployment
-- **code-organization** - File structure conventions, module organization, and dependency management patterns
+### Workflow
+- **project-setup** - Initial scaffolding
+- **feature-development** - Implementation workflow
+- **code-organization** - Structure conventions
 
 ### Example Usage
 
-When starting a new feature that involves creating a new page with data loading and styling:
+Starting a new feature:
 ```bash
-# Read all relevant documentation before starting
-read-docs react-router-patterns,shadcn-components,tailwind-guidelines,repository-pattern
+read-docs react-router-patterns,shadcn-components,repository-pattern
 ```
 
-When debugging authentication issues:
+Debugging auth issues:
 ```bash
-# Get specific guidance for auth problems
 read-docs clerk-integration,security-patterns,troubleshooting-guide
 ```
-
-Remember: The `read-docs` command is available at any time during your work. Don't hesitate to use it whenever you need clarification or best practices for any aspect of agent-stack development.
