@@ -1,121 +1,40 @@
 # Agent Stack
 
-A comprehensive workspace for building AI agent-friendly full-stack applications, containing both documentation tooling and a reference implementation.
+Agent Stack is a development environment that allows AI agents to develop web apps with maximum autonomy. 
 
-## Workspace Structure
+It's designed for teams who want to use AI to rapidly build production-quality web apps that they can host on their own AWS infrastructure.
 
-This is a pnpm workspace containing two independent applications:
+It consists of:
 
-### 📚 `apps/docs-server`
-An MCP (Model Context Protocol) server that provides structured documentation access for AI coding agents. This server enables agents to access detailed implementation guides, best practices, and patterns through a simple `read-docs` command.
+- An opinionated serverless web stack providing a clear foundation for the agent to work with. Technology choices include SST v3, React Router v7, Tailwind CSS, Drizzle, and Hono. 
+- An MCP server providing structured documentation on this tech stack for AI agents running in tools like Cursor, Claude Code or OpenCode.
 
-### 🚀 `apps/reference-app`  
-A complete reference implementation of an agent-stack application, demonstrating modern full-stack patterns optimized for AI agent development. Built with React Router v7, Tailwind CSS, Hono, and SST v3.
+...more docs
 
-## Quick Start
+## STATUS
 
-```bash
-# Install all dependencies
-pnpm install
+The project is in early development. The high level build strategy is as follows:
 
-# Start the documentation server
-pnpm docs-server:dev
+- Implement a fully featured app in `apps/reference-app` showcasing all the core patterns
+- Use AI to generate comprehensive docs from these patterns in `apps/docs-server/pages`, e.g. `auth.md`, `adding-an-api-route.md`. Update the table of contents in `intro.md` to reference these pages (the MCP server docs instruct the agent to run `read-docs intro` and then run `read-docs` commands for anything else it needs to know about)
+- Add a new command `create-app` for use in a new workspace - this copies the reference app into the workspace (perhaps downloading a zip) as the basis for a new application.
+- Process for customising the reference app/docs to suit an org's own requirements.
+- agent-stack.json (or .ts) file allowing configuration of framework choices, e.g. relational vs dynamo
+- Stack migrations - keep track of the version of agent-stack in agent-stack.json. When upgrading to a new version, provide migration instructions for the agent via the MCP server.
 
-# Start the reference application
-pnpm reference-app:dev
 
-# Build all apps
-pnpm build:all
+## TODO 
 
-# Run all tests
-pnpm test:all
-```
+- [ ] reference-app auth (SST Auth or Clerk).
+- [ ] reference-app CRUD features
+- [ ] reference-app UI component library (think Claude has gone for radix, would something like shadcn be preferable?)
+- [ ] reference-app observability (powertools?)
+- [ ] browser MCP (Playwright MCP seems to be good)
 
-## Available Commands
 
-### Documentation Server
-```bash
-pnpm docs-server:dev      # Start MCP server in development mode
-pnpm docs-server:build    # Build the MCP server
-pnpm docs-server:start    # Start the built MCP server
-pnpm docs-server:test     # Run MCP server tests
-```
+## Rest of README 
 
-### Reference Application
-```bash
-pnpm reference-app:dev     # Start Remix development server
-pnpm reference-app:build   # Build the application
-pnpm reference-app:deploy  # Deploy to AWS with SST
-pnpm reference-app:test    # Run application tests
-```
-
-## Architecture Philosophy
-
-Agent-stack is designed with AI agents in mind, providing:
-
-- **Predictable patterns** - Consistent conventions across all components
-- **Explicit abstractions** - Clear interfaces and well-defined boundaries
-- **Type safety** - Full TypeScript support for better reliability
-- **Documentation-driven** - Comprehensive guides accessible via MCP
-- **Modern tooling** - Latest versions of proven technologies
-
-## Technology Stack
-
-### Frontend
-- **React Router v7** - File-based routing with data loading
-- **Tailwind CSS** - Utility-first styling with design systems
-- **TypeScript** - Full type safety across components
-
-### Backend  
-- **Hono** - Lightweight, TypeScript-native HTTP framework
-- **Repository Pattern** - Database abstraction for DynamoDB/PostgreSQL
-- **Drizzle ORM** - Type-safe database operations
-
-### Infrastructure
-- **SST v3** - Infrastructure as code for AWS deployment
-- **AWS Lambda** - Serverless functions with automatic scaling
-- **CloudFront** - Global CDN for optimal performance
-
-### Authentication
-- **Clerk** - Complete user management with minimal setup
-
-### Development
-- **Vitest** - Fast unit and integration testing
-- **ESLint** - Code quality and consistency
-- **pnpm** - Fast, efficient package management
-
-## Getting Started with Development
-
-1. **Clone and install dependencies**:
-   ```bash
-   git clone <repository-url>
-   cd agent-stack
-   pnpm install
-   ```
-
-2. **Start the documentation server** (for AI agent access):
-   ```bash
-   pnpm docs-server:dev
-   ```
-
-3. **Start the reference application**:
-   ```bash
-   pnpm reference-app:dev
-   ```
-
-4. **Begin development** using the patterns demonstrated in the reference app and guided by the documentation server.
-
-## For AI Agents
-
-If you're an AI agent working with this codebase:
-
-1. Use `read-docs <topic>` to access specific documentation pages
-2. Follow the established patterns shown in the reference application  
-3. Prefer explicit over implicit implementations
-4. Leverage TypeScript for better reliability
-5. Write tests incrementally as you build features
-
-The documentation server provides comprehensive guides for all aspects of agent-stack development, from basic setup to advanced deployment strategies.
+...more docs
 
 ## License
 
