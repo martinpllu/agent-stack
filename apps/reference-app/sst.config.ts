@@ -75,6 +75,25 @@ export default $config({
     // Build the DATABASE_URL from Aurora outputs
     const databaseUrl = $interpolate`postgresql://${database.username}:${database.password}@${database.host}:${database.port}/${stageDatabaseName}`;
     
+    // Create DynamoDB table for OpenAuth storage
+    const authTable = new sst.aws.Dynamo("AuthStorage", {
+      fields: {
+        pk: "string",
+        sk: "string",
+      },
+      primaryIndex: { hashKey: "pk", rangeKey: "sk" },
+    });
+    
+    const auth = new sst.aws.Auth("MyAuth", {
+        issuer: {
+          handler: "auth/index.handler",
+          environment: {
+            OPENAUTH_STORAGE_TABLE: authTable.name,
+          },
+          link: [authTable],
+        },
+      });
+    
     new sst.aws.React("web", {
       vpc,
       environment: {
@@ -88,6 +107,7 @@ export default $config({
         DB_CLUSTER_ARN: database.clusterArn,
         DB_SECRET_ARN: database.secretArn,
       },
+      link: [auth],
     });
 
     return {

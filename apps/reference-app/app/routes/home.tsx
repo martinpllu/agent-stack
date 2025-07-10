@@ -1,8 +1,18 @@
-import { Link } from "react-router";
+import { Link, Form, useLoaderData, useSearchParams } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+
+interface User {
+  type: string;
+  properties: {
+    id: string;
+  };
+}
 import { Layout } from "~/components/layout";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { CheckCircle2, Users, BarChart3 } from "lucide-react";
+import { CheckCircle2, Users, BarChart3, LogIn, LogOut, AlertCircle } from "lucide-react";
+import { verifyAuth } from "~/lib/auth-server";
+import { loginAction, logoutAction } from "~/lib/auth-actions";
 
 export function meta() {
   return [
@@ -11,10 +21,47 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { user, headers } = await verifyAuth(request)
+  
+  return Response.json({ user: user as User | null }, headers ? { headers } : undefined)
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData()
+  const intent = formData.get("intent")
+  
+  if (intent === "login") {
+    return loginAction()
+  } else if (intent === "logout") {
+    return logoutAction()
+  }
+  
+  throw new Error("Invalid action")
+}
+
 export default function Home() {
+  const { user } = useLoaderData<{ user: User | null }>()
+  const [searchParams] = useSearchParams()
+  const error = searchParams.get("error")
+
   return (
     <Layout>
       <div className="space-y-16">
+        {/* Error Display */}
+        {error && (
+          <section className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              <p className="text-red-800">
+                {error === "no_code" && "Authentication failed: No authorization code received"}
+                {error === "exchange_failed" && "Authentication failed: Could not exchange authorization code"}
+                {error === "callback_failed" && "Authentication failed: Callback processing error"}
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Hero Section */}
         <section className="text-center space-y-6 py-16">
           <h1 className="text-5xl font-bold tracking-tight">
@@ -25,9 +72,36 @@ export default function Home() {
             Track tasks from backlog to done with ease.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link to="/tasks">
-              <Button>View Demo (Guest Access)</Button>
-            </Link>
+            {user ? (
+              <>
+                <Link to="/tasks">
+                  <Button>
+                    <Users className="mr-2 h-4 w-4" />
+                    View Tasks
+                  </Button>
+                </Link>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="logout" />
+                  <Button type="submit" variant="outline">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout ({user.properties.id})
+                  </Button>
+                </Form>
+              </>
+            ) : (
+              <>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="login" />
+                  <Button type="submit">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Login with OpenAuth
+                  </Button>
+                </Form>
+                <Link to="/tasks">
+                  <Button variant="outline">View Demo (Guest Access)</Button>
+                </Link>
+              </>
+            )}
           </div>
         </section>
 
@@ -81,33 +155,71 @@ export default function Home() {
 
         {/* Access Levels Section */}
         <section className="bg-muted/50 rounded-lg p-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Access Levels</h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="space-y-2">
-              <h3 className="font-semibold">Guest Access</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• View all tasks</li>
-                <li>• Filter by status</li>
-                <li>• Read-only access</li>
-              </ul>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {user ? `Welcome, ${user.properties.id}!` : "Access Levels"}
+          </h2>
+          {user ? (
+            <div className="text-center space-y-4">
+              <p className="text-lg">You are logged in and have full access to the task management system.</p>
+              <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <Card className="border-green-200 bg-green-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-green-800">
+                      <CheckCircle2 className="mr-2 h-5 w-5" />
+                      Authenticated User
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="text-sm space-y-1 text-green-700">
+                      <li>• Create and edit tasks</li>
+                      <li>• Update task status</li>
+                      <li>• Full task management</li>
+                      <li>• Secure authentication</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ready to get started?</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Link to="/tasks">
+                      <Button className="w-full">
+                        Go to Task Board
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold">User Access</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Create new tasks</li>
-                <li>• Edit own tasks</li>
-                <li>• Update task status</li>
-              </ul>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div className="space-y-2">
+                <h3 className="font-semibold">Guest Access</h3>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• View all tasks</li>
+                  <li>• Filter by status</li>
+                  <li>• Read-only access</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">User Access</h3>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Create new tasks</li>
+                  <li>• Edit own tasks</li>
+                  <li>• Update task status</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Admin Access</h3>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Full task management</li>
+                  <li>• Assign tasks to users</li>
+                  <li>• Delete any task</li>
+                </ul>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold">Admin Access</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Full task management</li>
-                <li>• Assign tasks to users</li>
-                <li>• Delete any task</li>
-              </ul>
-            </div>
-          </div>
+          )}
         </section>
       </div>
     </Layout>

@@ -8,6 +8,14 @@ declare module "sst" {
     "AppVpc": {
       "type": "sst.aws.Vpc"
     }
+    "AuthStorage": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
+    "MyAuth": {
+      "type": "sst.aws.Auth"
+      "url": string
+    }
     "SharedDevDatabase": {
       "clusterArn": string
       "database": string
