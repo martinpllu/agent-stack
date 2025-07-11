@@ -100,9 +100,6 @@ export default function Home() {
                     Login with OpenAuth
                   </Button>
                 </Form>
-                <Link to="/tasks">
-                  <Button variant="outline">View Demo (Guest Access)</Button>
-                </Link>
               </>
             )}
           </div>
@@ -145,7 +142,7 @@ export default function Home() {
               <BarChart3 className="h-8 w-8 mb-2 text-primary" />
               <CardTitle>Role-Based Access</CardTitle>
               <CardDescription>
-                Guest, user, and admin roles with appropriate permissions
+                User and admin roles with appropriate permissions
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -199,15 +196,7 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="space-y-2">
-                <h3 className="font-semibold">Guest Access</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• View all tasks</li>
-                  <li>• Filter by status</li>
-                  <li>• Read-only access</li>
-                </ul>
-              </div>
+            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
               <div className="space-y-2">
                 <h3 className="font-semibold">User Access</h3>
                 <ul className="text-sm text-muted-foreground space-y-1">

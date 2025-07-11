@@ -22,7 +22,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground">Guest Mode</span>
           </div>
         </div>
       </header>
