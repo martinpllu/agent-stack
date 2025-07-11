@@ -187,6 +187,68 @@ export DATABASE_URL="postgresql://postgres:password@localhost:5432/local"
 pnpm dev
 ```
 
+### Stage Database Setup
+
+When deploying a new stage, you need to create its database within the shared Aurora cluster:
+
+#### For Personal Dev Stages
+
+1. **Deploy your stage** (this creates the infrastructure but not the database):
+```bash
+npx sst deploy --stage your-stage-name
+```
+
+2. **Create the stage database**:
+```bash
+node scripts/sql-query.js "CREATE DATABASE your_stage_name;" --db=postgres
+```
+
+3. **Run database migrations**:
+```bash
+pnpm db:push
+```
+
+   **Note**: If `pnpm db:push` fails with Aurora Data API, you can create tables manually:
+```bash
+# Create the enum
+node scripts/sql-query.js "CREATE TYPE task_status AS ENUM ('todo', 'in_progress', 'done');"
+
+# Create users table
+node scripts/sql-query.js "CREATE TABLE users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT NOT NULL UNIQUE, last_login TIMESTAMPTZ, is_admin BOOLEAN NOT NULL DEFAULT false, is_validated BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());"
+
+# Create tasks table
+node scripts/sql-query.js "CREATE TABLE tasks (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id), title TEXT NOT NULL, description TEXT NOT NULL, status task_status NOT NULL DEFAULT 'todo', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());"
+
+# Create index
+node scripts/sql-query.js "CREATE INDEX tasks_user_id_status_idx ON tasks (user_id, status);"
+```
+
+4. **Verify the setup**:
+```bash
+node scripts/sql-query.js "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+```
+
+#### Example for a stage named "feature123":
+
+```bash
+# 1. Deploy the stage
+npx sst deploy --stage feature123
+
+# 2. Create the database (note: hyphens become underscores)
+node scripts/sql-query.js "CREATE DATABASE feature123;" --db=postgres
+
+# 3. Run migrations
+pnpm db:push
+
+# 4. Verify tables exist
+node scripts/sql-query.js "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+```
+
+**Important Notes:**
+- Stage names with hyphens are converted to underscores for database names (e.g., `feature-123` → `feature123`)
+- You must connect to the `postgres` database to create new databases (using `--db=postgres`)
+- The shared dev cluster must already exist (created by `dev` or `staging` stages)
+
 ### Database Migrations
 
 1. Generate migrations:
@@ -261,6 +323,29 @@ npx sst dev --verbose
 2. Verify the database credentials are being passed correctly by checking the SST outputs
 
 3. For local development, ensure your PostgreSQL container is running and accessible
+
+### Database Does Not Exist Error
+
+If you see an error like `ERROR: database "your-stage-name" does not exist`:
+
+1. **The stage database hasn't been created yet**. Follow the [Stage Database Setup](#stage-database-setup) steps above.
+
+2. **Quick fix for current stage**:
+```bash
+# Create the database for your current stage
+node scripts/sql-query.js "CREATE DATABASE $(echo $SST_STAGE | tr '-' '_');" --db=postgres
+
+# Or manually specify your stage name
+node scripts/sql-query.js "CREATE DATABASE your_stage_name;" --db=postgres
+
+# Then run migrations
+pnpm db:push
+```
+
+3. **List existing databases**:
+```bash
+node scripts/sql-query.js "SELECT datname FROM pg_database WHERE datistemplate = false;" --db=postgres
+```
 
 ### Scale-to-Zero Resume Time
 

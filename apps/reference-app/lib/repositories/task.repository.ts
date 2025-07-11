@@ -1,107 +1,96 @@
-import { eq, desc, and, or } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { db } from "../db/client";
-import { tasks, users, type Task, type NewTask } from "../db/schema";
+import { tasks, type Task, type NewTask } from "../db/schema";
 import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from "../types/task";
 
 export class TaskRepository {
-  async findAll(filters?: { status?: TaskStatus; assigneeId?: string }) {
-    const conditions = [];
+  async findByUserId(userId: string, filters?: { status?: TaskStatus }): Promise<Task[]> {
+    const conditions = [eq(tasks.userId, userId)];
     
     if (filters?.status) {
       conditions.push(eq(tasks.status, filters.status));
     }
     
-    if (filters?.assigneeId) {
-      conditions.push(eq(tasks.assigneeId, filters.assigneeId));
-    }
-    
-    const query = db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        description: tasks.description,
-        status: tasks.status,
-        assigneeId: tasks.assigneeId,
-        assigneeName: users.name,
-        createdAt: tasks.createdAt,
-        updatedAt: tasks.updatedAt,
-        createdById: tasks.createdById,
-        createdByName: users.name,
-      })
+    return await db
+      .select()
       .from(tasks)
-      .leftJoin(users, eq(tasks.assigneeId, users.id))
+      .where(and(...conditions))
       .orderBy(desc(tasks.createdAt));
-    
-    if (conditions.length > 0) {
-      return await query.where(and(...conditions));
-    }
-    
-    return await query;
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<Task | null> {
     const result = await db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        description: tasks.description,
-        status: tasks.status,
-        assigneeId: tasks.assigneeId,
-        assigneeName: users.name,
-        createdAt: tasks.createdAt,
-        updatedAt: tasks.updatedAt,
-        createdById: tasks.createdById,
-        createdByName: users.name,
-      })
+      .select()
       .from(tasks)
-      .leftJoin(users, eq(tasks.assigneeId, users.id))
       .where(eq(tasks.id, id))
       .limit(1);
     
     return result[0] || null;
   }
 
-  async create(input: CreateTaskInput & { createdById: string }): Promise<Task> {
+  async create(input: CreateTaskInput & { userId: string }): Promise<Task> {
+    const newTask: NewTask = {
+      title: input.title,
+      description: input.description,
+      status: input.status || "todo",
+      userId: input.userId,
+    };
+
     const [task] = await db
       .insert(tasks)
-      .values({
-        title: input.title,
-        description: input.description,
-        status: input.status,
-        assigneeId: input.assigneeId,
-        createdById: input.createdById,
-      })
+      .values(newTask)
       .returning();
     
     return task;
   }
 
-  async update(id: string, input: UpdateTaskInput): Promise<Task | null> {
+  async update(id: string, userId: string, input: UpdateTaskInput): Promise<Task | null> {
     const [updated] = await db
       .update(tasks)
       .set({
         ...input,
         updatedAt: new Date(),
       })
-      .where(eq(tasks.id, id))
+      .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
       .returning();
     
     return updated || null;
   }
 
-  async delete(id: string): Promise<boolean> {
-    const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return result.count > 0;
+  async delete(id: string, userId: string): Promise<boolean> {
+    // First check if the task exists and belongs to the user
+    const existingTask = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+      .limit(1);
+    
+    if (existingTask.length === 0) {
+      return false;
+    }
+    
+    await db
+      .delete(tasks)
+      .where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
+    
+    return true;
   }
 
-  async getTasksByColumn() {
-    const allTasks = await this.findAll();
+  async getTasksByColumn(userId: string) {
+    const allTasks = await this.findByUserId(userId);
     
     return {
-      backlog: allTasks.filter(task => task.status === "backlog"),
-      "in-progress": allTasks.filter(task => task.status === "in-progress"),
+      todo: allTasks.filter(task => task.status === "todo"),
+      "in_progress": allTasks.filter(task => task.status === "in_progress"),
       done: allTasks.filter(task => task.status === "done"),
     };
+  }
+
+  async findAll(): Promise<Task[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .orderBy(desc(tasks.createdAt));
   }
 }
 

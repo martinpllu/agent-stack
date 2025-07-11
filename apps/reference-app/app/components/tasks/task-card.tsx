@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader } from "~/components/ui/card";
-import { User } from "lucide-react";
+import { Calendar } from "lucide-react";
 import type { Task } from "../../../lib/types/task";
 
 interface TaskCardProps {
@@ -20,12 +20,18 @@ export function TaskCard({ task }: TaskCardProps) {
       <CardContent className="pt-0">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            <span>{task.assigneeName || "Unassigned"}</span>
+            <Calendar className="h-3 w-3" />
+            <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
           </div>
-          <span>
-            {new Date(task.createdAt).toLocaleDateString()}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              task.status === 'done' ? 'bg-green-100 text-green-800' :
+              task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {task.status.replace('_', ' ')}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>

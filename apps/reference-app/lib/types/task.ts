@@ -1,39 +1,34 @@
-export type TaskStatus = "backlog" | "in-progress" | "done";
-
-export type UserRole = "guest" | "user" | "admin";
+export type TaskStatus = "todo" | "in_progress" | "done";
+export type UserRole = "user" | "admin";
 
 export interface Task {
   id: string;
+  userId: string;
   title: string;
-  description?: string;
+  description: string;
   status: TaskStatus;
-  assigneeId?: string;
-  assigneeName?: string;
   createdAt: Date;
   updatedAt: Date;
-  createdById: string;
-  createdByName: string;
 }
 
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  lastLogin?: Date;
+  isAdmin: boolean;
+  isValidated: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface CreateTaskInput {
   title: string;
-  description?: string;
-  status: TaskStatus;
-  assigneeId?: string;
+  description: string;
+  status?: TaskStatus;
 }
 
 export interface UpdateTaskInput {
   title?: string;
   description?: string;
   status?: TaskStatus;
-  assigneeId?: string;
 } 

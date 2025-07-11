@@ -77,4 +77,48 @@ export async function verifyAuth(request: Request) {
     console.error("Auth verification error:", error)
     return { user: null, headers: clearTokens() }
   }
+}
+
+export async function getCurrentUser(request: Request) {
+  const { user } = await verifyAuth(request);
+  return user;
+}
+
+export async function requireAuth(request: Request) {
+  const { user, headers } = await verifyAuth(request);
+  
+  if (!user) {
+    throw new Response("Unauthorized", { 
+      status: 401,
+      headers: headers || undefined
+    });
+  }
+  
+  return { user, headers };
+}
+
+export async function requireValidatedUser(request: Request) {
+  const { user, headers } = await requireAuth(request);
+  
+  // if (!user.properties.isValidated) { // temporarily disabled for basic auth
+  //   throw new Response("Account not validated", { 
+  //     status: 403,
+  //     headers: headers || undefined
+  //   });
+  // }
+  
+  return { user, headers };
+}
+
+export async function requireAdmin(request: Request) {
+  const { user, headers } = await requireAuth(request);
+  
+  // if (!user.properties.roles.includes("admin")) { // temporarily disabled for basic auth
+  //   throw new Response("Admin access required", { 
+  //     status: 403,
+  //     headers: headers || undefined
+  //   });
+  // }
+  
+  return { user, headers };
 } 

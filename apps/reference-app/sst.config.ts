@@ -89,8 +89,17 @@ export default $config({
           handler: "auth/index.handler",
           environment: {
             OPENAUTH_STORAGE_TABLE: authTable.name,
+            DATABASE_URL: databaseUrl,
+            // Pass Aurora connection details for Data API
+            DB_USERNAME: database.username,
+            DB_PASSWORD: database.password,
+            DB_DATABASE: stageDatabaseName,
+            DB_HOST: database.host,
+            DB_PORT: database.port.apply(p => p.toString()),
+            DB_CLUSTER_ARN: database.clusterArn,
+            DB_SECRET_ARN: database.secretArn,
           },
-          link: [authTable],
+          link: [authTable, database],
         },
       });
     
@@ -117,6 +126,9 @@ export default $config({
         database: stageDatabaseName,
         clusterArn: database.clusterArn,
         secretArn: database.secretArn,
+      },
+      auth: {
+        table: authTable.name,
       },
     };
   },
