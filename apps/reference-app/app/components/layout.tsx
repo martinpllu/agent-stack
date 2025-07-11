@@ -35,7 +35,7 @@ export function Layout({ children, user }: LayoutProps) {
             {user ? (
               <>
                 <span className="text-sm text-muted-foreground">
-                  {user.properties.email}
+                  {user.email || user.properties?.email}
                 </span>
                 <Form method="post">
                   <input type="hidden" name="intent" value="logout" />

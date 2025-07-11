@@ -15,6 +15,10 @@ const taskRepository = new TaskRepository();
 export async function loader({ request }: { request: Request }) {
   const { user } = await requireValidatedUserRole(request);
   
+  if (!user || !user.id) {
+    throw new Response("User not found", { status: 401 });
+  }
+  
   const tasksByColumn = await taskRepository.getTasksByColumn(user.id);
   
   return { tasksByColumn, user };
@@ -22,6 +26,10 @@ export async function loader({ request }: { request: Request }) {
 
 export async function action({ request }: { request: Request }) {
   const { user } = await requireValidatedUserRole(request);
+  
+  if (!user || !user.id) {
+    throw new Response("User not found", { status: 401 });
+  }
   
   const formData = await request.formData();
   const intent = formData.get("intent") as string;

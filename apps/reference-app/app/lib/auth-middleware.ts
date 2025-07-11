@@ -37,6 +37,7 @@ export async function requireRole(
 // Convenience functions for common use cases
 export async function requireValidatedUserRole(request: Request) {
   const result = await requireRole("user", request, { validated: true });
+  
   // Return the user object with properties flattened for easier access
   return {
     user: {
