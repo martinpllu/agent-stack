@@ -98,6 +98,8 @@ export default $config({
             DB_PORT: database.port.apply(p => p.toString()),
             DB_CLUSTER_ARN: database.clusterArn,
             DB_SECRET_ARN: database.secretArn,
+            // Official SST dev mode detection
+            SST_DEV: $dev ? "true" : "false",
           },
           link: [authTable, database],
         },

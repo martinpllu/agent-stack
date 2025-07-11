@@ -51,15 +51,27 @@ async function getUser(email: string) {
   // return newUser.id
 }
 
-// Use file storage for dev mode to fix the container persistence issue
-console.log(`[Storage] Environment check - AWS_LAMBDA_FUNCTION_NAME: ${process.env.AWS_LAMBDA_FUNCTION_NAME}, SST_STAGE: ${process.env.SST_STAGE}, NODE_ENV: ${process.env.NODE_ENV}`)
+// Use official SST environment detection to switch between storage types
+const isDevMode = process.env.SST_DEV === 'true'
+console.log(`[Storage] Environment check - SST_DEV: ${process.env.SST_DEV}, isDevMode: ${isDevMode}`)
 
-// For now, always use FileStorage to test the fix
-console.log(`[Storage] Using FileStorage for reliable dev mode persistence`)
-const storage = FileStorage({
-  dir: '/tmp/openauth-storage'
-})
-const storageInfo = 'FileStorage /tmp/openauth-storage'
+let storage: any
+let storageInfo: string
+
+if (isDevMode) {
+  console.log(`[Storage] Using FileStorage for SST dev mode`)
+  storage = FileStorage({
+    dir: '/tmp/openauth-storage'
+  })
+  storageInfo = 'FileStorage /tmp/openauth-storage'
+} else {
+  const storageTable = process.env.OPENAUTH_STORAGE_TABLE!
+  console.log(`[Storage] Using DynamoDB for deployed environment: ${storageTable}`)
+  storage = DynamoStorage({
+    table: storageTable,
+  })
+  storageInfo = `DynamoDB ${storageTable}`
+}
 
 // Use the storage directly - it now implements the correct StorageAdapter interface
 
