@@ -61,31 +61,12 @@ const storage = FileStorage({
 })
 const storageInfo = 'FileStorage /tmp/openauth-storage'
 
-// Wrap storage methods to add logging
-const loggingStorage = {
-  ...storage,
-  get: async (key: string) => {
-    console.log(`[Storage] Getting key: ${key}`)
-    const result = await storage.get(key)
-    console.log(`[Storage] Got value for ${key}:`, result ? 'found' : 'not found')
-    return result
-  },
-  set: async (key: string, value: any, ttl?: number) => {
-    console.log(`[Storage] Setting key: ${key}, ttl: ${ttl}`)
-    await storage.set(key, value, ttl)
-    console.log(`[Storage] Successfully set ${key}`)
-  },
-  delete: async (key: string) => {
-    console.log(`[Storage] Deleting key: ${key}`)
-    await storage.delete(key)
-    console.log(`[Storage] Deleted ${key}`)
-  }
-}
+// Use the storage directly - it now implements the correct StorageAdapter interface
 
 const app = issuer({
   subjects,
-  // Use DynamoDB storage for persistence across Lambda container restarts
-  storage: loggingStorage,
+  // Use FileStorage for dev mode reliability
+  storage: storage,
   // Remove after setting custom domain
   allow: async () => true,
   providers: {
