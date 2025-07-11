@@ -49,7 +49,7 @@ export default function Home() {
   const error = searchParams.get("error")
 
   return (
-    <Layout>
+    <Layout user={user}>
       <div className="space-y-16">
         {/* Error Display */}
         {error && (
@@ -76,31 +76,20 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center">
             {user ? (
-              <>
-                <Link to="/tasks">
-                  <Button>
-                    <Users className="mr-2 h-4 w-4" />
-                    View Tasks
-                  </Button>
-                </Link>
-                <Form method="post">
-                  <input type="hidden" name="intent" value="logout" />
-                  <Button type="submit" variant="outline">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout ({user.properties.email})
-                  </Button>
-                </Form>
-              </>
+              <Link to="/tasks">
+                <Button>
+                  <Users className="mr-2 h-4 w-4" />
+                  View Tasks
+                </Button>
+              </Link>
             ) : (
-              <>
-                <Form method="post">
-                  <input type="hidden" name="intent" value="login" />
-                  <Button type="submit">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login with OpenAuth
-                  </Button>
-                </Form>
-              </>
+              <Form method="post">
+                <input type="hidden" name="intent" value="login" />
+                <Button type="submit">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login to get started
+                </Button>
+              </Form>
             )}
           </div>
         </section>
@@ -155,12 +144,12 @@ export default function Home() {
 
         {/* Access Levels Section */}
         <section className="bg-muted/50 rounded-lg p-8">
-          <h2 className="text-3xl font-bold text-center mb-8">
+          <h2 className="text-3xl font-bold text-center mb-8 text-foreground">
             {user ? `Welcome, ${user.properties.email}!` : "Access Levels"}
           </h2>
           {user ? (
             <div className="text-center space-y-4">
-              <p className="text-lg">
+              <p className="text-lg text-foreground">
                 You are logged in as {user.properties.isAdmin ? "an admin" : "a user"} and have 
                 {user.properties.isValidated ? " validated" : " unvalidated"} access to the task management system.
               </p>
@@ -198,7 +187,7 @@ export default function Home() {
           ) : (
             <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
               <div className="space-y-2">
-                <h3 className="font-semibold">User Access</h3>
+                <h3 className="font-semibold text-foreground">User Access</h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Create new tasks</li>
                   <li>• Edit own tasks</li>
@@ -206,7 +195,7 @@ export default function Home() {
                 </ul>
               </div>
               <div className="space-y-2">
-                <h3 className="font-semibold">Admin Access</h3>
+                <h3 className="font-semibold text-foreground">Admin Access</h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Full task management</li>
                   <li>• Assign tasks to users</li>
