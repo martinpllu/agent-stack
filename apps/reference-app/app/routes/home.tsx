@@ -5,6 +5,9 @@ interface User {
   type: string;
   properties: {
     id: string;
+    email: string;
+    isAdmin: boolean;
+    isValidated: boolean;
   };
 }
 import { Layout } from "~/components/layout";
@@ -32,7 +35,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const intent = formData.get("intent")
   
   if (intent === "login") {
-    return loginAction()
+    return loginAction(request)
   } else if (intent === "logout") {
     return logoutAction()
   }
@@ -84,7 +87,7 @@ export default function Home() {
                   <input type="hidden" name="intent" value="logout" />
                   <Button type="submit" variant="outline">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Logout ({user.properties.id})
+                    Logout ({user.properties.email})
                   </Button>
                 </Form>
               </>
@@ -156,25 +159,28 @@ export default function Home() {
         {/* Access Levels Section */}
         <section className="bg-muted/50 rounded-lg p-8">
           <h2 className="text-3xl font-bold text-center mb-8">
-            {user ? `Welcome, ${user.properties.id}!` : "Access Levels"}
+            {user ? `Welcome, ${user.properties.email}!` : "Access Levels"}
           </h2>
           {user ? (
             <div className="text-center space-y-4">
-              <p className="text-lg">You are logged in and have full access to the task management system.</p>
+              <p className="text-lg">
+                You are logged in as {user.properties.isAdmin ? "an admin" : "a user"} and have 
+                {user.properties.isValidated ? " validated" : " unvalidated"} access to the task management system.
+              </p>
               <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
                 <Card className="border-green-200 bg-green-50">
                   <CardHeader>
                     <CardTitle className="flex items-center text-green-800">
                       <CheckCircle2 className="mr-2 h-5 w-5" />
-                      Authenticated User
+                      {user.properties.isAdmin ? "Admin User" : "Standard User"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="text-sm space-y-1 text-green-700">
-                      <li>• Create and edit tasks</li>
-                      <li>• Update task status</li>
-                      <li>• Full task management</li>
-                      <li>• Secure authentication</li>
+                      <li>• User ID: {user.properties.id}</li>
+                      <li>• Email: {user.properties.email}</li>
+                      <li>• Role: {user.properties.isAdmin ? "Administrator" : "User"}</li>
+                      <li>• Status: {user.properties.isValidated ? "Validated" : "Pending Validation"}</li>
                     </ul>
                   </CardContent>
                 </Card>

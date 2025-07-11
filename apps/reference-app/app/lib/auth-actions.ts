@@ -1,14 +1,16 @@
 import { redirect } from "react-router"
 import { client, clearTokens } from "./auth-server"
 
-export async function loginAction() {
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
-  const host = process.env.NODE_ENV === "production" ? "your-production-domain.com" : "localhost:5173"
+export async function loginAction(request: Request) {
+  const url = new URL(request.url)
+  const protocol = url.protocol.slice(0, -1) // Remove trailing ':'
+  const host = url.host
   const redirectUri = `${protocol}://${host}/auth/callback`
   
   try {
-    const { url } = await client.authorize(redirectUri, "code")
-    throw redirect(url)
+    // Use code provider for email/code authentication
+    const { url: authUrl } = await client.authorize(redirectUri, "code")
+    throw redirect(authUrl)
   } catch (error) {
     if (error instanceof Response) {
       throw error // This is our redirect response

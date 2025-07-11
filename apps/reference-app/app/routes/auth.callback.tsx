@@ -11,8 +11,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw redirect("/?error=no_code")
   }
   
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
-  const host = process.env.NODE_ENV === "production" ? "your-production-domain.com" : url.host
+  const protocol = url.protocol.slice(0, -1) // Remove trailing ':'
+  const host = url.host
   const redirectUri = `${protocol}://${host}/auth/callback`
   
   try {

@@ -131,6 +131,7 @@ export default $config({
       },
       auth: {
         table: authTable.name,
+        issuer: auth.issuer,
       },
     };
   },

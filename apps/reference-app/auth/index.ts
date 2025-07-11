@@ -6,6 +6,7 @@ import { MemoryStorage } from "@openauthjs/openauth/storage/memory"
 import { DynamoStorage } from "@openauthjs/openauth/storage/dynamo"
 import { FileStorage } from "./file-storage"
 import { subjects } from "./subjects"
+import { UserRepository } from "../lib/repositories/user.repository"
 
 // // Simple in-memory user store for demo purposes
 // // In production, this would be a database
@@ -31,25 +32,7 @@ import { subjects } from "./subjects"
 //   }
 // }
 
-async function getUser(email: string) {
-  // Get user from database and return user ID
-  // For now, just return a hardcoded ID like the example
-  return "123"
-  
-  // // Original complex user management code:
-  // const user = users.get(email)
-  // if (user) {
-  //   return user.id
-  // }
-  // // Create new user
-  // const newUser = {
-  //   id: email.split('@')[0] + "-" + Date.now(),
-  //   email,
-  //   password: "" // Will be set during registration
-  // }
-  // users.set(email, newUser)
-  // return newUser.id
-}
+// User management is now handled in the success handler below
 
 // Use official SST environment detection to switch between storage types
 const isDevMode = process.env.SST_DEV === 'true'
@@ -99,9 +82,27 @@ const app = issuer({
   success: async (ctx, value) => {
     console.log(`[Success] Provider: ${value.provider}, Claims:`, value.claims)
     if (value.provider === "code") {
-      return ctx.subject("user", {
-        id: await getUser(value.claims.email)
-      })
+      try {
+        const userRepo = new UserRepository()
+        
+        // Find or create user in the database
+        const user = await userRepo.findOrCreate(value.claims.email)
+        
+        // Update last login timestamp
+        await userRepo.updateLastLogin(user.id)
+        
+        console.log(`[Auth] User authenticated: ${user.email} (ID: ${user.id})`)
+        
+        return ctx.subject("user", {
+          id: user.id,
+          email: user.email,
+          isAdmin: user.isAdmin,
+          isValidated: user.isValidated,
+        })
+      } catch (error) {
+        console.error(`[Auth] Database error for email ${value.claims.email}:`, error)
+        throw new Error("Failed to authenticate user")
+      }
     }
     throw new Error("Invalid provider")
   },

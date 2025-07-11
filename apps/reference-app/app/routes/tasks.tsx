@@ -1,4 +1,4 @@
-import { redirect } from "react-router";
+import { redirect, Link, isRouteErrorResponse, useRouteError } from "react-router";
 import { useLoaderData, Form, useActionData } from "react-router";
 import { requireValidatedUserRole } from "~/lib/auth-middleware";
 import { TaskRepository } from "../../lib/repositories/task.repository";
@@ -15,7 +15,7 @@ const taskRepository = new TaskRepository();
 export async function loader({ request }: { request: Request }) {
   const { user } = await requireValidatedUserRole(request);
   
-  const tasksByColumn = await taskRepository.getTasksByColumn(user.properties.id);
+  const tasksByColumn = await taskRepository.getTasksByColumn(user.id);
   
   return { tasksByColumn, user };
 }
@@ -38,7 +38,7 @@ export async function action({ request }: { request: Request }) {
       await taskRepository.create({
         title,
         description,
-        userId: user.properties.id,
+        userId: user.id,
       });
       
       return { success: "Task created successfully" };
@@ -61,7 +61,7 @@ export async function action({ request }: { request: Request }) {
       if (title) updateData.title = title;
       if (description) updateData.description = description;
       
-      await taskRepository.update(taskId, user.properties.id, updateData);
+      await taskRepository.update(taskId, user.id, updateData);
       
       return { success: "Task updated successfully" };
     }
@@ -73,7 +73,7 @@ export async function action({ request }: { request: Request }) {
         return { error: "Task ID is required" };
       }
       
-            const deleted = await taskRepository.delete(taskId, user.properties.id);
+            const deleted = await taskRepository.delete(taskId, user.id);
 
       if (!deleted) {
         return { error: "Task not found or not authorized" };
@@ -106,7 +106,7 @@ export default function TasksPage() {
           <h1 className="text-3xl font-bold">Tasks</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">
-              Welcome, User {user.properties.id}
+              Welcome, {user.email}
             </span>
             <Button 
               onClick={() => setShowCreateForm(!showCreateForm)}
@@ -178,6 +178,87 @@ export default function TasksPage() {
         )}
         
         <TaskBoard tasksByColumn={compatibleTasksByColumn} />
+      </div>
+    </Layout>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  
+  if (isRouteErrorResponse(error)) {
+    if (error.status === 403 && error.data === "Account not validated") {
+      return (
+        <Layout>
+          <div className="max-w-2xl mx-auto mt-8 p-6">
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardHeader>
+                <CardTitle className="text-yellow-800">Account Validation Required</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-yellow-700">
+                  Your account needs to be validated before you can access the tasks page.
+                </p>
+                <p className="text-yellow-700">
+                  Please check your email for a validation link, or contact support if you need assistance.
+                </p>
+                <div className="pt-4">
+                  <Link to="/">
+                    <Button variant="outline" className="border-yellow-300 text-yellow-800 hover:bg-yellow-100">
+                      Back to Home
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Layout>
+      );
+    }
+    
+    // Handle other error responses
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto mt-8 p-6">
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800">
+                {error.status} - {error.statusText || "Error"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-700">{error.data || "An unexpected error occurred."}</p>
+              <Link to="/" className="inline-block mt-4">
+                <Button variant="outline" className="border-red-300 text-red-800 hover:bg-red-100">
+                  Back to Home
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Handle non-route errors
+  return (
+    <Layout>
+      <div className="max-w-2xl mx-auto mt-8 p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800">Unexpected Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-700">
+              {error instanceof Error ? error.message : "An unexpected error occurred."}
+            </p>
+            <Link to="/" className="inline-block mt-4">
+              <Button variant="outline" className="border-red-300 text-red-800 hover:bg-red-100">
+                Back to Home
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );

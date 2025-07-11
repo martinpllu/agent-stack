@@ -1,9 +1,10 @@
 import { createClient } from "@openauthjs/openauth/client"
 import { subjects } from "../../auth/subjects"
+import { Resource } from "sst"
 
 export const client = createClient({
-  clientID: "reactrouter",
-  issuer: "https://xw4qzlmtelruwwtetf6tvtmcu40hgpbn.lambda-url.eu-west-1.on.aws"
+  clientID: "react-router",
+  issuer: Resource.MyAuth.url
 })
 
 export async function setTokens(access: string, refresh: string) {
@@ -100,12 +101,12 @@ export async function requireAuth(request: Request) {
 export async function requireValidatedUser(request: Request) {
   const { user, headers } = await requireAuth(request);
   
-  // if (!user.properties.isValidated) { // temporarily disabled for basic auth
-  //   throw new Response("Account not validated", { 
-  //     status: 403,
-  //     headers: headers || undefined
-  //   });
-  // }
+  if (!user.properties.isValidated) {
+    throw new Response("Account not validated", { 
+      status: 403,
+      headers: headers || undefined
+    });
+  }
   
   return { user, headers };
 }
@@ -113,12 +114,12 @@ export async function requireValidatedUser(request: Request) {
 export async function requireAdmin(request: Request) {
   const { user, headers } = await requireAuth(request);
   
-  // if (!user.properties.roles.includes("admin")) { // temporarily disabled for basic auth
-  //   throw new Response("Admin access required", { 
-  //     status: 403,
-  //     headers: headers || undefined
-  //   });
-  // }
+  if (!user.properties.isAdmin) {
+    throw new Response("Admin access required", { 
+      status: 403,
+      headers: headers || undefined
+    });
+  }
   
   return { user, headers };
 } 
