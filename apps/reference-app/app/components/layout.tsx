@@ -1,6 +1,14 @@
-import { Link, Form } from "react-router";
+import { Link, Form, useLocation } from "react-router";
 import { Button } from "./ui/button";
 import { LogIn, LogOut } from "lucide-react";
+import {
+  NavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  navigationMenuTriggerStyle,
+} from "./ui/navigation-menu";
+import { cn } from "~/lib/utils";
 
 interface User {
   type: string;
@@ -18,6 +26,8 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user }: LayoutProps) {
+  const location = useLocation();
+  
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -26,9 +36,32 @@ export function Layout({ children, user }: LayoutProps) {
             <Link to="/" className="text-2xl font-bold">
               Task Tracker
             </Link>
-            <Link to="/tasks" className="text-muted-foreground hover:text-foreground">
-              Tasks
-            </Link>
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link 
+                    to="/" 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      location.pathname === "/" && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    Home
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link 
+                    to="/tasks" 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      location.pathname === "/tasks" && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    Tasks
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           </nav>
           
           <div className="flex items-center space-x-4">

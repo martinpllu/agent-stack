@@ -2,6 +2,7 @@ import { redirect, Link, isRouteErrorResponse, useRouteError } from "react-route
 import { useLoaderData, Form, useActionData } from "react-router";
 import { requireValidatedUserRole } from "~/lib/auth-middleware";
 import { TaskRepository } from "../../lib/repositories/task.repository";
+import { logoutAction } from "~/lib/auth-actions";
 import { Layout } from "~/components/layout";
 import { TaskBoard } from "~/components/tasks/task-board";
 import { Button } from "~/components/ui/button";
@@ -35,6 +36,9 @@ export async function action({ request }: { request: Request }) {
   const intent = formData.get("intent") as string;
   
   switch (intent) {
+    case "logout":
+      return logoutAction();
+      
     case "create": {
       const title = formData.get("title") as string;
       const description = formData.get("description") as string;
@@ -113,9 +117,6 @@ export default function TasksPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Tasks</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              Welcome, {user.email}
-            </span>
             <Button 
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="bg-blue-600 hover:bg-blue-700"
