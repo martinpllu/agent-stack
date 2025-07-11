@@ -251,20 +251,63 @@ node scripts/sql-query.js "SELECT table_name FROM information_schema.tables WHER
 
 ### Database Migrations
 
-1. Generate migrations:
+The project uses Drizzle ORM with custom migration scripts that work with AWS Aurora Data API.
+
+#### Making Schema Changes
+
+1. **Edit the schema**: Modify files in `lib/db/schema.ts`
+
+2. **Generate migration files**:
 ```bash
-pnpm drizzle-kit generate
+pnpm db:generate
+```
+This creates SQL migration files in the `drizzle/` directory.
+
+3. **Apply migrations** (requires explicit stage):
+```bash
+pnpm migrate --stage martin
+pnpm migrate --stage dev
+pnpm migrate --stage production
+```
+This runs migrations using the official Drizzle Data API migrator against the specified stage's database.
+
+#### Alternative Commands
+
+- **Push schema directly** (development only):
+```bash
+pnpm db:push
+```
+⚠️ This bypasses migration files and directly pushes schema changes to the database.
+
+- **Manual database queries** (requires explicit stage):
+```bash
+pnpm sql "SELECT * FROM users LIMIT 5;" --stage martin
+pnpm sql "SELECT COUNT(*) FROM tasks;" --stage dev
+pnpm sql "SELECT * FROM users;" --stage production
 ```
 
-2. Apply migrations:
+- **Cross-stage database operations**:
 ```bash
-pnpm drizzle-kit migrate
+pnpm sql "SELECT COUNT(*) FROM users;" --stage dev
+pnpm sql "SELECT COUNT(*) FROM users;" --stage production
+pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres
 ```
 
-Or push changes directly (for development):
-```bash
-pnpm drizzle-kit push
-```
+#### How It Works
+
+- **Explicit stage targeting**: All database operations require an explicit `--stage` parameter to prevent accidental operations on wrong environments
+- **Cross-stage capability**: You can run operations against any stage (martin, dev, production) from any local environment
+- **Migration tracking**: Uses Drizzle's `__drizzle_migrations` table to track applied migrations per stage
+- **Aurora Data API**: All database operations use AWS Data API instead of direct PostgreSQL connections
+- **SST integration**: Scripts automatically load cluster configuration from `.sst/outputs.json` but target the specified stage's database
+- **Stage isolation**: Each stage (martin, dev, production) uses its own database within the shared Aurora cluster
+
+#### Migration Files
+
+- Generated migration files are stored in `drizzle/`
+- Each migration has a timestamp and descriptive name (e.g., `0001_far_nova.sql`)
+- Migrations are applied in chronological order
+- Already applied migrations are skipped automatically
 
 ## Deployment
 

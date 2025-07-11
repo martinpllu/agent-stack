@@ -9,8 +9,9 @@
     "typecheck": "react-router typegen && tsc",
     "test": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "npx tsx scripts/migrate.js",
     "db:push": "drizzle-kit push",
+    "migrate": "npx tsx scripts/migrate.js",
     "db:studio": "drizzle-kit studio",
     "sql": "node scripts/sql-query.js",
     "delete-all-data": "node scripts/delete-all-data.js"

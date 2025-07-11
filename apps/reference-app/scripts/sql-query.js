@@ -2,14 +2,29 @@
 import { RDSDataClient, ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
 import { readFileSync } from 'fs';
 
-// Load database configuration from SST outputs
-function loadDatabaseConfig(databaseOverride = null) {
+// Load database configuration for a specific stage
+function loadDatabaseConfig(stage, databaseOverride = null) {
+  if (!stage) {
+    console.error('❌ Stage is required. Specify --stage <stage-name>');
+    console.error('Examples:');
+    console.error('  pnpm sql "SELECT * FROM users;" --stage martin');
+    console.error('  pnpm sql "SELECT * FROM users;" --stage dev');
+    console.error('  pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres');
+    process.exit(1);
+  }
+
   try {
+    // Load the current SST outputs to get cluster info
     const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
+    
+    // Use the specified stage's database name
+    const stageDatabaseName = stage.replace(/-/g, "_");
+    
     return {
       resourceArn: outputs.database.clusterArn,
       secretArn: outputs.database.secretArn,
-      database: databaseOverride || outputs.database.database || 'postgres'
+      database: databaseOverride || stageDatabaseName,
+      stage: stage
     };
   } catch (error) {
     console.error('❌ Error loading database config from .sst/outputs.json');
@@ -64,10 +79,11 @@ function formatResults(result) {
 }
 
 // Execute SQL query
-async function executeQuery(sql, databaseOverride = null) {
-  const config = loadDatabaseConfig(databaseOverride);
+async function executeQuery(sql, stage, databaseOverride = null) {
+  const config = loadDatabaseConfig(stage, databaseOverride);
   
   console.log(`🔍 Executing: ${sql}`);
+  console.log(`🎯 Stage: ${config.stage}`);
   console.log(`🗃️  Database: ${config.database}`);
   console.log('⏳ Running query...');
   
@@ -110,38 +126,54 @@ async function executeQuery(sql, databaseOverride = null) {
 async function main() {
   const args = process.argv.slice(2);
   
-  // Parse --db parameter
+  // Parse parameters
   let databaseOverride = null;
+  let stage = null;
   let sqlArgs = [];
   
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith('--db=')) {
       databaseOverride = args[i].split('=')[1];
+    } else if (args[i] === '--db' && i + 1 < args.length) {
+      databaseOverride = args[i + 1];
+      i++; // Skip the next argument since we consumed it
+    } else if (args[i].startsWith('--stage=')) {
+      stage = args[i].split('=')[1];
+    } else if (args[i] === '--stage' && i + 1 < args.length) {
+      stage = args[i + 1];
+      i++; // Skip the next argument since we consumed it
     } else {
       sqlArgs.push(args[i]);
     }
   }
   
-  if (sqlArgs.length === 0) {
+  if (sqlArgs.length === 0 || !stage) {
     console.log(`
 🗃️  Aurora Data API SQL Query Tool
 
 Usage:
-  npm run sql "SELECT * FROM users LIMIT 5;"
-  npm run sql "SHOW TABLES;" --db=postgres
-  node scripts/sql-query.js "SELECT * FROM users;"
+  pnpm sql "SELECT * FROM users LIMIT 5;" --stage martin
+  pnpm sql "SHOW TABLES;" --stage dev --db postgres
+  node scripts/sql-query.js "SELECT * FROM users;" --stage production
   
 Examples:
-  npm run sql "SELECT * FROM users;"
-  npm run sql "SELECT COUNT(*) FROM tasks;"
-  npm run sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+  pnpm sql "SELECT * FROM users;" --stage martin
+  pnpm sql "SELECT COUNT(*) FROM tasks;" --stage dev
+  pnpm sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';" --stage production
+  
+Cross-stage operations:
+  pnpm sql "SELECT COUNT(*) FROM users;" --stage dev
+  pnpm sql "SELECT COUNT(*) FROM users;" --stage production
   
 Database Management:
-  npm run sql "CREATE DATABASE dev;" --db=postgres
-  npm run sql "SELECT datname FROM pg_database;" --db=postgres
+  pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres
+  pnpm sql "SELECT datname FROM pg_database;" --stage dev --db postgres
+  
+Required:
+  --stage STAGE_NAME    Target stage database (e.g., martin, dev, production)
   
 Options:
-  --db=DATABASE_NAME    Override database name (useful for connecting to 'postgres' initially)
+  --db DATABASE_NAME    Override database name (useful for connecting to 'postgres' initially)
 
 Note: The database may auto-pause and take a few seconds to resume on first query.
 `);
@@ -149,7 +181,7 @@ Note: The database may auto-pause and take a few seconds to resume on first quer
   }
   
   const sql = sqlArgs.join(' ');
-  await executeQuery(sql, databaseOverride);
+  await executeQuery(sql, stage, databaseOverride);
 }
 
 // Handle errors
