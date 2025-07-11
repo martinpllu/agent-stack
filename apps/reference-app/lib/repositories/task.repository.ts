@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { tasks, type Task, type NewTask } from "../db/schema";
 import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from "../types/task";

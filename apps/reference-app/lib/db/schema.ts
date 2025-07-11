@@ -1,7 +1,5 @@
-import { pgTable, text, timestamp, varchar, pgEnum, boolean, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, varchar, boolean, uuid, index } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
-
-export const taskStatusEnum = pgEnum("task_status", ["todo", "in_progress", "done"]);
 
 export const users = pgTable("users", {
   id: uuid("id")
@@ -24,7 +22,7 @@ export const tasks = pgTable("tasks", {
     .references(() => users.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  status: taskStatusEnum("status").notNull().default("todo"),
+  status: text("status").notNull().default("todo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({

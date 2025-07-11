@@ -8,6 +8,13 @@
       "when": 1752160987022,
       "tag": "0000_ambitious_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752256163496,
+      "tag": "0001_far_nova",
+      "breakpoints": true
     }
   ]
 }
