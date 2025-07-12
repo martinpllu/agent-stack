@@ -15,8 +15,19 @@ import { RDSDataClient, ExecuteStatementCommand } from "@aws-sdk/client-rds-data
 import { readFileSync } from "fs";
 import { createInterface } from "readline";
 
+interface SST_Outputs {
+  auth: {
+    table: string;
+  };
+  database: {
+    clusterArn: string;
+    secretArn: string;
+    database: string;
+  };
+}
+
 // Read outputs to get resource information
-const outputs = JSON.parse(readFileSync(".sst/outputs.json", "utf8"));
+const outputs: SST_Outputs = JSON.parse(readFileSync(".sst/outputs.json", "utf8"));
 
 const dynamoTableName = outputs.auth.table;
 const auroraClusterArn = outputs.database.clusterArn;
@@ -28,8 +39,8 @@ const dynamoClient = new DynamoDBClient({ region: "eu-west-1" });
 const rdsClient = new RDSDataClient({ region: "eu-west-1" });
 
 // Helper function to retry Aurora resuming operations
-async function withAuroraRetry(operation, maxRetries = 3, delayMs = 10000) {
-  let lastError;
+async function withAuroraRetry<T>(operation: () => Promise<T>, maxRetries = 3, delayMs = 10000): Promise<T> {
+  let lastError: any;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -39,9 +50,9 @@ async function withAuroraRetry(operation, maxRetries = 3, delayMs = 10000) {
       
       // Check if this is a DatabaseResumingException or Aurora resuming error
       const isDatabaseResuming = 
-        error?.name === 'DatabaseResumingException' ||
-        error?.message?.includes('resuming after being auto-paused') ||
-        (error?.message?.includes('Aurora DB instance') && error?.message?.includes('resuming'));
+        (error as any)?.name === 'DatabaseResumingException' ||
+        (error as any)?.message?.includes('resuming after being auto-paused') ||
+        ((error as any)?.message?.includes('Aurora DB instance') && (error as any)?.message?.includes('resuming'));
       
       if (isDatabaseResuming && attempt < maxRetries) {
         console.log(`💤 Aurora database is resuming (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs/1000} seconds...`);
@@ -63,18 +74,18 @@ const rl = createInterface({
   output: process.stdout
 });
 
-function askQuestion(question) {
+function askQuestion(question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, resolve);
   });
 }
 
-async function confirmAction(message) {
+async function confirmAction(message: string): Promise<boolean> {
   const answer = await askQuestion(`${message} (type "yes" to confirm): `);
   return answer.toLowerCase() === "yes";
 }
 
-async function deleteDynamoDBData() {
+async function deleteDynamoDBData(): Promise<void> {
   console.log(`\n🗑️  Deleting data from DynamoDB table: ${dynamoTableName}`);
 
   try {
@@ -105,14 +116,14 @@ async function deleteDynamoDBData() {
 
       const deleteRequests = batch.map(item => {
         // Extract all keys from the item to build the primary key
-        const keys = {};
+        const keys: any = {};
         Object.keys(item).forEach(key => {
-          keys[key] = item[key];
+          keys[key] = (item as any)[key];
         });
         
         return {
           DeleteRequest: {
-            Key: keys
+            Key: keys as any
           }
         };
       });
@@ -126,11 +137,11 @@ async function deleteDynamoDBData() {
 
     console.log("✅ DynamoDB data deletion completed");
   } catch (error) {
-    console.error("❌ Error deleting DynamoDB data:", error.message);
+    console.error("❌ Error deleting DynamoDB data:", (error as any).message);
   }
 }
 
-async function deleteAuroraData() {
+async function deleteAuroraData(): Promise<void> {
   console.log(`\n🗑️  Deleting data from Aurora database: ${databaseName}`);
 
   try {
@@ -182,10 +193,10 @@ async function deleteAuroraData() {
 
     console.log("✅ Aurora data deletion completed");
   } catch (error) {
-    console.error("❌ Error deleting Aurora data:", error.message);
+    console.error("❌ Error deleting Aurora data:", (error as any).message);
     
     // Additional Aurora-specific error guidance
-    if (error?.message?.includes('resuming') || error?.name === 'DatabaseResumingException') {
+    if ((error as any)?.message?.includes('resuming') || (error as any)?.name === 'DatabaseResumingException') {
       console.error("ℹ️  This error occurred because Aurora was auto-paused and needed to resume.");
       console.error("ℹ️  The script includes retry logic, but the database may need more time to fully resume.");
       console.error("ℹ️  Try running the script again in a few minutes.");
@@ -195,7 +206,7 @@ async function deleteAuroraData() {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log("🚨 DELETE ALL DATA SCRIPT 🚨");
   console.log("================================");
   console.log("This script will delete ALL data from:");

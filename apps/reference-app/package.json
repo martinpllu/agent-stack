@@ -11,12 +11,12 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "test": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "npx tsx scripts/migrate.js",
+    "db:migrate": "tsx scripts/migrate.ts",
     "db:push": "drizzle-kit push",
-    "migrate": "npx tsx scripts/migrate.js",
+    "migrate": "tsx scripts/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "sql": "node scripts/sql-query.js",
-    "delete-all-data": "node scripts/delete-all-data.js"
+    "sql": "tsx scripts/sql-query.ts",
+    "delete-all-data": "tsx scripts/delete-all-data.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.844.0",
@@ -59,6 +59,7 @@
     "drizzle-kit": "^0.30.0",
     "eslint": "^9.19.0",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.0.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",

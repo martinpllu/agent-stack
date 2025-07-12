@@ -3,10 +3,26 @@ import { readFileSync } from 'fs';
 import { drizzle } from 'drizzle-orm/aws-data-api/pg';
 import { migrate } from 'drizzle-orm/aws-data-api/pg/migrator';
 import { RDSDataClient } from '@aws-sdk/client-rds-data';
-import * as schema from '../lib/db/schema.ts';
+import * as schema from '../app/db/schema.js';
+
+interface SST_Outputs {
+  database: {
+    clusterArn: string;
+    secretArn: string;
+    database: string;
+  };
+}
+
+interface DatabaseConfig {
+  database: string;
+  secretArn: string;
+  resourceArn: string;
+  region: string;
+  stage: string;
+}
 
 // Load and set up environment from SST outputs for a specific stage
-function setupEnvironment(stage) {
+function setupEnvironment(stage: string | null): DatabaseConfig {
   if (!stage) {
     console.error('❌ Stage is required. Specify --stage <stage-name>');
     console.error('Examples:');
@@ -18,7 +34,7 @@ function setupEnvironment(stage) {
 
   try {
     // Load the current SST outputs to get cluster info
-    const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
+    const outputs: SST_Outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
     
     // Use the specified stage's database name
     const stageDatabaseName = stage.replace(/-/g, "_");
@@ -41,11 +57,11 @@ function setupEnvironment(stage) {
   }
 }
 
-async function runMigrations() {
+async function runMigrations(): Promise<void> {
   const args = process.argv.slice(2);
   
   // Parse --stage parameter
-  let stage = null;
+  let stage: string | null = null;
   
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith('--stage=')) {

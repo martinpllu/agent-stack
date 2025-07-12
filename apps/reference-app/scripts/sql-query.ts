@@ -2,8 +2,22 @@
 import { RDSDataClient, ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
 import { readFileSync } from 'fs';
 
+interface SST_Outputs {
+  database: {
+    clusterArn: string;
+    secretArn: string;
+  };
+}
+
+interface DatabaseConfig {
+  resourceArn: string;
+  secretArn: string;
+  database: string;
+  stage: string;
+}
+
 // Load database configuration for a specific stage
-function loadDatabaseConfig(stage, databaseOverride = null) {
+function loadDatabaseConfig(stage: string | null, databaseOverride: string | null = null): DatabaseConfig {
   if (!stage) {
     console.error('❌ Stage is required. Specify --stage <stage-name>');
     console.error('Examples:');
@@ -15,7 +29,7 @@ function loadDatabaseConfig(stage, databaseOverride = null) {
 
   try {
     // Load the current SST outputs to get cluster info
-    const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
+    const outputs: SST_Outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
     
     // Use the specified stage's database name
     const stageDatabaseName = stage.replace(/-/g, "_");
@@ -39,7 +53,7 @@ const client = new RDSDataClient({
 });
 
 // Format and display query results
-function formatResults(result) {
+function formatResults(result: any): void {
   if (!result.records || result.records.length === 0) {
     console.log('📝 Query executed successfully. No rows returned.');
     return;
@@ -47,7 +61,7 @@ function formatResults(result) {
 
   // Get column names from the first record
   const firstRecord = result.records[0];
-  const columns = result.columnMetadata?.map(col => col.name) || 
+  const columns = result.columnMetadata?.map((col: any) => col.name) || 
                  Object.keys(firstRecord).map((_, i) => `col_${i}`);
 
   // Create table
@@ -55,13 +69,13 @@ function formatResults(result) {
   console.log('─'.repeat(80));
   
   // Header
-  const headerRow = columns.map(col => col.padEnd(20)).join(' | ');
+  const headerRow = columns.map((col: any) => col.padEnd(20)).join(' | ');
   console.log(headerRow);
   console.log('─'.repeat(80));
   
   // Data rows
-  result.records.forEach(record => {
-    const values = record.map(field => {
+  result.records.forEach((record: any) => {
+    const values = record.map((field: any) => {
       // Handle different field types
       if (field.stringValue !== undefined) return field.stringValue;
       if (field.longValue !== undefined) return field.longValue.toString();
@@ -70,7 +84,7 @@ function formatResults(result) {
       return JSON.stringify(field);
     });
     
-    const row = values.map(val => String(val).padEnd(20)).join(' | ');
+    const row = values.map((val: any) => String(val).padEnd(20)).join(' | ');
     console.log(row);
   });
   
@@ -79,7 +93,7 @@ function formatResults(result) {
 }
 
 // Execute SQL query
-async function executeQuery(sql, stage, databaseOverride = null) {
+async function executeQuery(sql: string, stage: string, databaseOverride: string | null = null): Promise<void> {
   const config = loadDatabaseConfig(stage, databaseOverride);
   
   console.log(`🔍 Executing: ${sql}`);
@@ -102,17 +116,17 @@ async function executeQuery(sql, stage, databaseOverride = null) {
     formatResults(result);
     
   } catch (error) {
-    if (error.name === 'DatabaseResumingException') {
+    if ((error as any).name === 'DatabaseResumingException') {
       console.log('💤 Database is resuming from auto-pause. Retrying in 10 seconds...');
       await new Promise(resolve => setTimeout(resolve, 10000));
-      return executeQuery(sql, databaseOverride); // Retry
+      return executeQuery(sql, stage, databaseOverride); // Retry
     }
     
     console.error('❌ Query failed:');
-    console.error(error.message);
+    console.error((error as any).message);
     
     // If database doesn't exist, suggest how to create it
-    if (error.message.includes('database') && error.message.includes('does not exist')) {
+    if ((error as any).message.includes('database') && (error as any).message.includes('does not exist')) {
       console.log('\n💡 The database doesn\'t exist yet. Try:');
       console.log(`   npm run sql "CREATE DATABASE ${config.database};" --db=postgres`);
       console.log('   Then run your original query again.');
@@ -123,13 +137,13 @@ async function executeQuery(sql, stage, databaseOverride = null) {
 }
 
 // Main function
-async function main() {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   
   // Parse parameters
-  let databaseOverride = null;
-  let stage = null;
-  let sqlArgs = [];
+  let databaseOverride: string | null = null;
+  let stage: string | null = null;
+  let sqlArgs: string[] = [];
   
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith('--db=')) {
@@ -186,7 +200,7 @@ Note: The database may auto-pause and take a few seconds to resume on first quer
 
 // Handle errors
 process.on('unhandledRejection', (error) => {
-  console.error('❌ Unhandled error:', error.message);
+  console.error('❌ Unhandled error:', (error as any).message);
   process.exit(1);
 });
 

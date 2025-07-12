@@ -25,7 +25,7 @@ This script deletes all data from:
 npm run delete-all-data
 
 # Or directly
-node scripts/delete-all-data.js
+tsx scripts/delete-all-data.ts
 ```
 
 ### Example output
