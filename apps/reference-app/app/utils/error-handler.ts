@@ -20,7 +20,7 @@ export interface ErrorResponse {
   message: string;
   status: number;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -31,7 +31,7 @@ export function createErrorResponse(
   message: string,
   status: number,
   code?: string,
-  details?: any
+  details?: unknown
 ): Response {
   const errorResponse: ErrorResponse = {
     type,
@@ -77,16 +77,16 @@ export const AuthError = {
  * General error responses
  */
 export const AppError = {
-  badRequest: (message: string, details?: any) =>
+  badRequest: (message: string, details?: unknown) =>
     createErrorResponse(ErrorType.BAD_REQUEST, message, 400, "BAD_REQUEST", details),
     
   notFound: (message = "Resource not found") =>
     createErrorResponse(ErrorType.NOT_FOUND, message, 404, "NOT_FOUND"),
     
-  validation: (message: string, details?: any) =>
+  validation: (message: string, details?: unknown) =>
     createErrorResponse(ErrorType.VALIDATION, message, 400, "VALIDATION_ERROR", details),
     
-  serverError: (message = "Internal server error", details?: any) =>
+  serverError: (message = "Internal server error", details?: unknown) =>
     createErrorResponse(ErrorType.SERVER_ERROR, message, 500, "SERVER_ERROR", details),
 };
 

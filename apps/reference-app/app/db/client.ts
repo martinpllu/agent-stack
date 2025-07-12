@@ -55,20 +55,20 @@ async function withAuroraRetry<T>(operation: () => Promise<T>, maxRetries = 3, d
         console.log(`[DB Retry] Aurora operation succeeded after retry (attempt ${attempt})`);
       }
       return result;
-    } catch (error: any) {
-      lastError = error;
+    } catch (error: unknown) {
+      lastError = error as Error;
       
       // Check if this is a DatabaseResumingException
       const isDatabaseResuming = 
-        error?.name === 'DatabaseResumingException' ||
-        error?.message?.includes('resuming after being auto-paused') ||
-        (error?.message?.includes('Aurora DB instance') && error?.message?.includes('resuming')) ||
-        error?.message?.includes('is resuming after being auto-paused');
+        (error as Error)?.name === 'DatabaseResumingException' ||
+        (error as Error)?.message?.includes('resuming after being auto-paused') ||
+        ((error as Error)?.message?.includes('Aurora DB instance') && (error as Error)?.message?.includes('resuming')) ||
+        (error as Error)?.message?.includes('is resuming after being auto-paused');
       
       if (isDatabaseResuming && attempt < maxRetries) {
         hasRetried = true;
         console.log(`[DB Retry] Aurora database is resuming (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs}ms...`);
-        console.log(`[DB Retry] Error details: ${error?.name || 'unknown'} - ${error?.message || 'no message'}`);
+        console.log(`[DB Retry] Error details: ${(error as Error)?.name || 'unknown'} - ${(error as Error)?.message || 'no message'}`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
         continue;
       }
@@ -107,12 +107,14 @@ function wrapWithRetry<T>(queryBuilder: T): T {
     return queryBuilder;
   }
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new Proxy(queryBuilder as any, {
     get(target, prop, receiver) {
       const originalValue = Reflect.get(target, prop, receiver);
       
       // If this is the 'then' method (promise execution), wrap with retry
       if (prop === 'then' && typeof originalValue === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return function(onResolve?: any, onReject?: any) {
           return withAuroraRetry(() => target[prop](onResolve, onReject));
         };
@@ -120,6 +122,7 @@ function wrapWithRetry<T>(queryBuilder: T): T {
       
       // If this is a function that might return another query builder, wrap the result
       if (typeof originalValue === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return function (...args: any[]) {
           const result = originalValue.apply(target, args);
           
@@ -144,6 +147,7 @@ export const db = new Proxy(baseDb, {
     
     // Wrap database methods to apply retry logic to query builders
     if (typeof originalMethod === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return function (...args: any[]) {
         const result = originalMethod.apply(target, args);
         

@@ -76,7 +76,7 @@ export function createAuthAction(
   role: AuthRole,
   options: AuthOptions = {}
 ) {
-  return (handler: (args: { request: Request; user: FlatUser; headers: Headers | null }) => Promise<any>) => {
+  return <T>(handler: (args: { request: Request; user: FlatUser; headers: Headers | null }) => Promise<T>) => {
     return async ({ request }: { request: Request }) => {
       try {
         const { user, headers } = await requireRole(role, request, options);

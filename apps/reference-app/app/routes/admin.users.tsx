@@ -1,17 +1,34 @@
 import { requireAdminRole } from "~/auth/auth-middleware";
 import { UserRepository } from "~/db/repositories/user.repository";
 import { AppError } from "~/utils/error-handler";
+import type { User } from "~/types/user";
+
+// Types for admin user management
+interface UnvalidatedUserSummary {
+  id: string;
+  email: string;
+  createdAt: Date;
+}
+
+interface AdminUsersLoaderData {
+  users: UnvalidatedUserSummary[];
+}
+
+interface AdminActionData {
+  success?: boolean;
+  user?: User;
+}
 
 const userRepository = new UserRepository();
 
 // Admin loader for getting unvalidated users
-export async function loader({ request }: { request: Request }) {
+export async function loader({ request }: { request: Request }): Promise<AdminUsersLoaderData> {
   await requireAdminRole(request);
   
   const unvalidatedUsers = await userRepository.findUnvalidatedUsers();
   
   return {
-    users: unvalidatedUsers.map((user: any) => ({
+    users: unvalidatedUsers.map((user: User): UnvalidatedUserSummary => ({
       id: user.id,
       email: user.email,
       createdAt: user.createdAt,
@@ -20,7 +37,7 @@ export async function loader({ request }: { request: Request }) {
 }
 
 // Admin action for validating users
-export async function action({ request }: { request: Request }) {
+export async function action({ request }: { request: Request }): Promise<AdminActionData> {
   await requireAdminRole(request);
   
   const url = new URL(request.url);
@@ -43,7 +60,7 @@ export async function action({ request }: { request: Request }) {
   throw AppError.badRequest("Method not allowed");
 }
 
-export default function AdminUsers({ loaderData }: { loaderData: any }) {
+export default function AdminUsers({ loaderData }: { loaderData: AdminUsersLoaderData }) {
   const { users } = loaderData;
   
   const handleValidateUser = async (userId: string) => {
@@ -74,7 +91,7 @@ export default function AdminUsers({ loaderData }: { loaderData: any }) {
           </div>
         ) : (
                      <div className="divide-y divide-gray-200">
-             {users.map((user: any) => (
+             {users.map((user: UnvalidatedUserSummary) => (
               <div key={user.id} className="px-6 py-4 flex items-center justify-between">
                 <div>
                   <div className="font-medium">{user.email}</div>

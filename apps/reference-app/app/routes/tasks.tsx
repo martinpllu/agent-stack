@@ -11,7 +11,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { useState } from "react";
-import type { TaskStatus } from "~/model/task";
+import type { TaskStatus, UpdateTaskInput } from "~/model/task";
 
 const taskRepository = new TaskRepository();
 
@@ -66,8 +66,8 @@ export async function action({ request }: { request: Request }) {
         return { error: "Task ID is required" };
       }
       
-      const updateData: any = {};
-      if (status) updateData.status = status;
+      const updateData: UpdateTaskInput = {};
+      if (status) updateData.status = status as TaskStatus;
       
       const title = formData.get("title") as string;
       const description = formData.get("description") as string;

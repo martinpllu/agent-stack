@@ -31,7 +31,7 @@ export function FileStorage(options: { dir: string }): StorageAdapter {
       }
     },
     
-    async set(key: string[], value: any, expiry?: Date) {
+    async set(key: string[], value: unknown, expiry?: Date) {
       const filePath = getFilePath(key)
       const data = {
         value,

@@ -3,6 +3,8 @@ import { issuer } from "@openauthjs/openauth"
 import { CodeUI } from "@openauthjs/openauth/ui/code"
 import { CodeProvider } from "@openauthjs/openauth/provider/code"
 import { DynamoStorage } from "@openauthjs/openauth/storage/dynamo"
+// Note: Using 'any' type for storage due to OpenAuth library type limitations
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { FileStorage } from "./file-storage"
 import { subjects } from "./subjects"
 import { UserRepository } from "../app/db/repositories/user.repository"
