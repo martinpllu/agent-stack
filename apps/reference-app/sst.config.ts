@@ -73,7 +73,6 @@ export default $config({
     const stageDatabaseName = $app.stage.replace(/-/g, "_");
     
     // Build the DATABASE_URL from Aurora outputs
-    const databaseUrl = $interpolate`postgresql://${database.username}:${database.password}@${database.host}:${database.port}/${stageDatabaseName}`;
     
     // Create DynamoDB table for OpenAuth storage
     const authTable = new sst.aws.Dynamo("AuthStorage", {
@@ -89,11 +88,11 @@ export default $config({
           handler: "auth/index.handler",
           environment: {
             OPENAUTH_STORAGE_TABLE: authTable.name,
-            DATABASE_URL: databaseUrl,
-            // Pass Aurora connection details for Data API
+            // Aurora Data API configuration (standardized approach)
             DB_DATABASE: stageDatabaseName,
             DB_CLUSTER_ARN: database.clusterArn,
             DB_SECRET_ARN: database.secretArn,
+            AWS_REGION: aws.getRegionOutput().name,
             // Official SST dev mode detection
             SST_DEV: $dev ? "true" : "false",
           },
@@ -104,11 +103,11 @@ export default $config({
     new sst.aws.React("web", {
       vpc,
       environment: {
-        DATABASE_URL: databaseUrl,
-        // Pass Aurora connection details for Data API
+        // Aurora Data API configuration (standardized approach)
         DB_DATABASE: stageDatabaseName,
         DB_CLUSTER_ARN: database.clusterArn,
         DB_SECRET_ARN: database.secretArn,
+        AWS_REGION: aws.getRegionOutput().name,
       },
       link: [auth],
     });
