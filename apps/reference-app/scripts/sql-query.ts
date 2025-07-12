@@ -1,4 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+
+import { Command } from 'commander';
 import { RDSDataClient, ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
 import { readFileSync } from 'fs';
 
@@ -136,72 +138,21 @@ async function executeQuery(sql: string, stage: string, databaseOverride: string
   }
 }
 
-// Main function
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  
-  // Parse parameters
-  let databaseOverride: string | null = null;
-  let stage: string | null = null;
-  let sqlArgs: string[] = [];
-  
-  for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith('--db=')) {
-      databaseOverride = args[i].split('=')[1];
-    } else if (args[i] === '--db' && i + 1 < args.length) {
-      databaseOverride = args[i + 1];
-      i++; // Skip the next argument since we consumed it
-    } else if (args[i].startsWith('--stage=')) {
-      stage = args[i].split('=')[1];
-    } else if (args[i] === '--stage' && i + 1 < args.length) {
-      stage = args[i + 1];
-      i++; // Skip the next argument since we consumed it
-    } else {
-      sqlArgs.push(args[i]);
-    }
-  }
-  
-  if (sqlArgs.length === 0 || !stage) {
-    console.log(`
-🗃️  Aurora Data API SQL Query Tool
+const program = new Command();
 
-Usage:
-  pnpm sql "SELECT * FROM users LIMIT 5;" --stage martin
-  pnpm sql "SHOW TABLES;" --stage dev --db postgres
-  node scripts/sql-query.js "SELECT * FROM users;" --stage production
-  
-Examples:
-  pnpm sql "SELECT * FROM users;" --stage martin
-  pnpm sql "SELECT COUNT(*) FROM tasks;" --stage dev
-  pnpm sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';" --stage production
-  
-Cross-stage operations:
-  pnpm sql "SELECT COUNT(*) FROM users;" --stage dev
-  pnpm sql "SELECT COUNT(*) FROM users;" --stage production
-  
-Database Management:
-  pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres
-  pnpm sql "SELECT datname FROM pg_database;" --stage dev --db postgres
-  
-Required:
-  --stage STAGE_NAME    Target stage database (e.g., martin, dev, production)
-  
-Options:
-  --db DATABASE_NAME    Override database name (useful for connecting to 'postgres' initially)
+program
+  .name('sql')
+  .description('Execute SQL queries against SST database')
+  .version('1.0.0')
+  .argument('<query>', 'SQL query to execute')
+  .requiredOption('-s, --stage <stage>', 'Stage name (e.g., martin, dev, production)')
+  .option('--db <database>', 'Override database name (useful for connecting to postgres initially)')
+  .action(async (query: string) => {
+    const { stage, db } = program.opts();
+    await executeQuery(query, stage, db || null);
+  });
 
-Note: The database may auto-pause and take a few seconds to resume on first query.
-`);
-    process.exit(0);
-  }
-  
-  const sql = sqlArgs.join(' ');
-  await executeQuery(sql, stage, databaseOverride);
-}
-
-// Handle errors
-process.on('unhandledRejection', (error) => {
-  console.error('❌ Unhandled error:', (error as any).message);
+program.parseAsync().catch((error) => {
+  console.error('❌ Error:', error.message);
   process.exit(1);
-});
-
-main(); 
+}); 

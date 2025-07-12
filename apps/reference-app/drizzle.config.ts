@@ -42,4 +42,8 @@ export default {
     secretArn: config.DB_SECRET_ARN,
     resourceArn: config.DB_CLUSTER_ARN,
   },
+  // Additional configuration for Drizzle Studio
+  introspect: {
+    casing: 'preserve'
+  }
 } satisfies Config; 

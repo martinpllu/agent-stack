@@ -1,4 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+
+import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { drizzle } from 'drizzle-orm/aws-data-api/pg';
 import { migrate } from 'drizzle-orm/aws-data-api/pg/migrator';
@@ -57,42 +59,7 @@ function setupEnvironment(stage: string | null): DatabaseConfig {
   }
 }
 
-async function runMigrations(): Promise<void> {
-  const args = process.argv.slice(2);
-  
-  // Parse --stage parameter
-  let stage: string | null = null;
-  
-  for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith('--stage=')) {
-      stage = args[i].split('=')[1];
-    } else if (args[i] === '--stage' && i + 1 < args.length) {
-      stage = args[i + 1];
-      i++; // Skip the next argument since we consumed it
-    }
-  }
-  
-  if (!stage) {
-    console.log(`
-🚀 Drizzle Migration Runner for Aurora Data API
-
-Usage:
-  pnpm migrate --stage martin
-  pnpm migrate --stage dev
-  pnpm migrate --stage production
-  
-Examples:
-  pnpm migrate --stage martin        # Run migrations against martin stage
-  pnpm migrate --stage dev           # Run migrations against dev stage
-  pnpm migrate --stage production    # Run migrations against production stage
-
-Required:
-  --stage STAGE_NAME    Target stage database (e.g., martin, dev, production)
-
-Note: This applies all pending migrations to the specified stage's database.
-`);
-    process.exit(0);
-  }
+async function runMigrations(stage: string): Promise<void> {
 
   try {
     console.log('🚀 Running database migrations...');
@@ -125,4 +92,19 @@ Note: This applies all pending migrations to the specified stage's database.
   }
 }
 
-runMigrations();
+const program = new Command();
+
+program
+  .name('migrate')
+  .description('Run database migrations for SST applications')
+  .version('1.0.0')
+  .requiredOption('-s, --stage <stage>', 'Stage name (e.g., martin, dev, production)')
+  .action(async () => {
+    const { stage } = program.opts();
+    await runMigrations(stage);
+  });
+
+program.parseAsync().catch((error) => {
+  console.error('❌ Error:', error.message);
+  process.exit(1);
+});

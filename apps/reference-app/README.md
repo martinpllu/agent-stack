@@ -61,7 +61,7 @@ npx sst deploy --stage your-name
 
 3. **Create your stage's database**:
 ```bash
-node scripts/sql-query.js "CREATE DATABASE your_name;" --db=postgres
+pnpm sql "CREATE DATABASE your_name;" --stage dev --db postgres
 ```
 
 4. **Run migrations**:
@@ -71,17 +71,31 @@ pnpm migrate --stage your-name
 
 ### Database Operations
 
-**Schema changes**:
+All database commands require the `--stage` parameter to specify which environment to target.
+
+**Unified database commands**:
 ```bash
-# Edit schema files in lib/db/schema.ts
-pnpm db:generate              # Generate migration files
-pnpm migrate --stage your-name  # Apply migrations
+pnpm db studio --stage your-name    # Open Drizzle Studio browser
+pnpm db generate --stage your-name  # Generate migration files  
+pnpm db push --stage your-name      # Push schema changes directly
+pnpm db migrate --stage your-name   # Run pending migrations
+pnpm db sql "SELECT * FROM users;" --stage your-name  # Execute SQL
 ```
 
-**Manual queries**:
+**Direct script access**:
 ```bash
-pnpm sql "SELECT * FROM users;" --stage your-name
-pnpm sql "SELECT COUNT(*) FROM tasks;" --stage production
+pnpm migrate --stage your-name                        # Run migrations
+pnpm sql "SELECT * FROM users;" --stage your-name     # Execute SQL queries
+pnpm sql "SELECT COUNT(*) FROM tasks;" --stage production --db postgres
+```
+
+**Schema development workflow**:
+```bash
+# 1. Edit schema files in app/db/schema.ts
+# 2. Generate migration files
+pnpm db generate --stage your-name
+# 3. Apply migrations
+pnpm db migrate --stage your-name
 ```
 
 ## Access Levels
