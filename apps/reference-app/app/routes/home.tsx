@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { CheckCircle2, Users, BarChart3, LogIn, LogOut, AlertCircle } from "lucide-react";
 import { verifyAuth } from "~/auth/auth-server";
 import { loginAction, logoutAction } from "~/auth/auth-actions";
+import { AppError } from "~/utils/error-handler";
 
 export function meta() {
   return [
@@ -44,7 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return logoutAction()
   }
   
-  throw new Error("Invalid action")
+  throw AppError.badRequest("Invalid action")
 }
 
 export default function Home() {

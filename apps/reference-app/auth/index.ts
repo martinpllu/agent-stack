@@ -6,32 +6,8 @@ import { DynamoStorage } from "@openauthjs/openauth/storage/dynamo"
 import { FileStorage } from "./file-storage"
 import { subjects } from "./subjects"
 import { UserRepository } from "../app/db/repositories/user.repository"
+import { AppError } from "../app/utils/error-handler"
 
-// // Simple in-memory user store for demo purposes
-// // In production, this would be a database
-// const users = new Map<string, { id: string; email: string; password: string }>()
-
-// // Pre-populate with a test user
-// users.set("test@example.com", {
-//   id: "test-123",
-//   email: "test@example.com", 
-//   password: "password123" // In production, this would be hashed
-// })
-
-// async function validatePassword(email: string, password: string): Promise<boolean> {
-//   const user = users.get(email)
-//   if (!user) return false
-//   return user.password === password // In production, use bcrypt or similar
-// }
-
-// async function setPassword(email: string, password: string) {
-//   const user = users.get(email)
-//   if (user) {
-//     user.password = password
-//   }
-// }
-
-// User management is now handled in the success handler below
 
 // Use official SST environment detection to switch between storage types
 const isDevMode = process.env.SST_DEV === 'true'
@@ -67,13 +43,21 @@ const app = issuer({
     code: CodeProvider(
       CodeUI({
         sendCode: async (email, code) => {
+          // DEVELOPMENT ONLY: Console logging of verification codes for testing
+          // TODO: Replace with actual email sending service for production
+          // This is a deliberate measure to make testing easier without email infrastructure
+          
+          if (!isDevMode) {
+            throw AppError.serverError("Console logging of verification codes is not allowed in production. Please implement proper email sending service.")
+          }
+          
           const timestamp = new Date().toISOString()
           // Fix: email might be an object, extract the actual email string
           const emailStr = typeof email === 'string' ? email : email.email || JSON.stringify(email)
           console.log(`[SendCode] *** VERIFICATION CODE FOR ${emailStr}: ${code} *** at ${timestamp}`)
           console.log(`[SendCode] Email type: ${typeof email}, value:`, email)
           console.log(`[SendCode] Storage: ${storageInfo}`)
-          // Log the code instead of sending email
+          // Log the code instead of sending email for development/testing purposes
         },
       }),
     ),
@@ -100,10 +84,10 @@ const app = issuer({
         })
       } catch (error) {
         console.error(`[Auth] Database error for email ${value.claims.email}:`, error)
-        throw new Error("Failed to authenticate user")
+        throw AppError.serverError("Failed to authenticate user")
       }
     }
-    throw new Error("Invalid provider")
+    throw AppError.badRequest("Invalid provider")
   },
 })
 

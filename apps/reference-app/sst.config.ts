@@ -91,11 +91,7 @@ export default $config({
             OPENAUTH_STORAGE_TABLE: authTable.name,
             DATABASE_URL: databaseUrl,
             // Pass Aurora connection details for Data API
-            DB_USERNAME: database.username,
-            DB_PASSWORD: database.password,
             DB_DATABASE: stageDatabaseName,
-            DB_HOST: database.host,
-            DB_PORT: database.port.apply(p => p.toString()),
             DB_CLUSTER_ARN: database.clusterArn,
             DB_SECRET_ARN: database.secretArn,
             // Official SST dev mode detection
@@ -109,12 +105,8 @@ export default $config({
       vpc,
       environment: {
         DATABASE_URL: databaseUrl,
-        // Pass Aurora connection details for Data API if needed
-        DB_USERNAME: database.username,
-        DB_PASSWORD: database.password,
+        // Pass Aurora connection details for Data API
         DB_DATABASE: stageDatabaseName,
-        DB_HOST: database.host,
-        DB_PORT: database.port.apply(p => p.toString()),
         DB_CLUSTER_ARN: database.clusterArn,
         DB_SECRET_ARN: database.secretArn,
       },

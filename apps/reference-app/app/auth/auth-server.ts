@@ -1,6 +1,7 @@
 import { createClient } from "@openauthjs/openauth/client"
 import { subjects } from "../../auth/subjects"
 import { Resource } from "sst"
+import { AuthError } from "~/utils/error-handler"
 
 export const client = createClient({
   clientID: "react-router",
@@ -89,10 +90,7 @@ export async function requireAuth(request: Request) {
   const { user, headers } = await verifyAuth(request);
   
   if (!user) {
-    throw new Response("Unauthorized", { 
-      status: 401,
-      headers: headers || undefined
-    });
+    throw AuthError.unauthorized();
   }
   
   return { user, headers };
@@ -102,24 +100,36 @@ export async function requireValidatedUser(request: Request) {
   const { user, headers } = await requireAuth(request);
   
   if (!user.properties.isValidated) {
-    throw new Response("Account not validated", { 
-      status: 403,
-      headers: headers || undefined
-    });
+    throw AuthError.notValidated();
   }
   
-  return { user, headers };
+  // Return flattened user object for consistent access patterns
+  return { 
+    user: {
+      id: user.properties.id,
+      email: user.properties.email,
+      isValidated: user.properties.isValidated,
+      isAdmin: user.properties.isAdmin
+    }, 
+    headers 
+  };
 }
 
 export async function requireAdmin(request: Request) {
   const { user, headers } = await requireAuth(request);
   
   if (!user.properties.isAdmin) {
-    throw new Response("Admin access required", { 
-      status: 403,
-      headers: headers || undefined
-    });
+    throw AuthError.adminRequired();
   }
   
-  return { user, headers };
+  // Return flattened user object for consistent access patterns
+  return { 
+    user: {
+      id: user.properties.id,
+      email: user.properties.email,
+      isValidated: user.properties.isValidated,
+      isAdmin: user.properties.isAdmin
+    }, 
+    headers 
+  };
 } 

@@ -1,5 +1,6 @@
 import { redirect } from "react-router"
 import { client, clearTokens } from "./auth-server"
+import { AppError } from "~/utils/error-handler"
 
 export async function loginAction(request: Request) {
   const url = new URL(request.url)
@@ -16,7 +17,7 @@ export async function loginAction(request: Request) {
       throw error // This is our redirect response
     }
     console.error("Login action error:", error)
-    throw new Error("Failed to initiate login")
+    throw AppError.serverError("Failed to initiate login")
   }
 }
 

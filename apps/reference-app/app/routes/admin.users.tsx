@@ -1,5 +1,6 @@
 import { requireAdminRole } from "~/auth/auth-middleware";
 import { UserRepository } from "~/db/repositories/user.repository";
+import { AppError } from "~/utils/error-handler";
 
 const userRepository = new UserRepository();
 
@@ -26,20 +27,20 @@ export async function action({ request }: { request: Request }) {
   const userId = url.searchParams.get("userId");
   
   if (!userId) {
-    throw new Response("User ID required", { status: 400 });
+    throw AppError.badRequest("User ID required");
   }
   
   if (request.method === "POST") {
     const user = await userRepository.validate(userId);
     
     if (!user) {
-      throw new Response("User not found", { status: 404 });
+      throw AppError.notFound("User not found");
     }
     
     return { success: true, user };
   }
   
-  throw new Response("Method not allowed", { status: 405 });
+  throw AppError.badRequest("Method not allowed");
 }
 
 export default function AdminUsers({ loaderData }: { loaderData: any }) {

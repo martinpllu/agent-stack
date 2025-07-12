@@ -3,6 +3,7 @@ import { useLoaderData, Form, useActionData } from "react-router";
 import { requireValidatedUserRole } from "~/auth/auth-middleware";
 import { TaskRepository } from "~/db/repositories/task.repository";
 import { logoutAction } from "~/auth/auth-actions";
+import { AuthError, AppError } from "~/utils/error-handler";
 import { Layout } from "~/components/layout";
 import { TaskBoard } from "~/components/tasks/task-board";
 import { Button } from "~/components/ui/button";
@@ -18,7 +19,7 @@ export async function loader({ request }: { request: Request }) {
   const { user } = await requireValidatedUserRole(request);
   
   if (!user || !user.id) {
-    throw new Response("User not found", { status: 401 });
+    throw AuthError.unauthorized("User not found");
   }
   
   const tasksByColumn = await taskRepository.getTasksByColumn(user.id);
@@ -30,7 +31,7 @@ export async function action({ request }: { request: Request }) {
   const { user } = await requireValidatedUserRole(request);
   
   if (!user || !user.id) {
-    throw new Response("User not found", { status: 401 });
+    throw AuthError.unauthorized("User not found");
   }
   
   const formData = await request.formData();

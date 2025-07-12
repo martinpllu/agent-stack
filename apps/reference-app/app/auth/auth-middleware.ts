@@ -1,5 +1,6 @@
 import { redirect } from "react-router";
 import { requireAuth, requireValidatedUser, requireAdmin } from "./auth-server";
+import { AuthError, handleAuthError } from "~/utils/error-handler";
 
 export type AuthRole = "user" | "admin";
 
@@ -17,18 +18,12 @@ export async function requireRole(
   
   // Check validation if required
   if (options.validated && !user.properties.isValidated) {
-    throw new Response("Account not validated", { 
-      status: 403,
-      headers: headers || undefined
-    });
+    throw AuthError.notValidated();
   }
   
   // Check role permissions  
   if (role === "admin" && !user.properties.isAdmin) {
-    throw new Response("Admin access required", { 
-      status: 403,
-      headers: headers || undefined
-    });
+    throw AuthError.adminRequired();
   }
   
   return { user, headers };
@@ -73,13 +68,7 @@ export function createAuthLoader(
         headers
       };
     } catch (error) {
-      if (error instanceof Response) {
-        if (error.status === 401) {
-          throw redirect("/auth/login");
-        }
-        throw error;
-      }
-      throw new Response("Authentication error", { status: 500 });
+      throw handleAuthError(error);
     }
   };
 }
@@ -102,13 +91,7 @@ export function createAuthAction(
         
         return await handler({ request, user: userData, headers });
       } catch (error) {
-        if (error instanceof Response) {
-          if (error.status === 401) {
-            throw redirect("/auth/login");
-          }
-          throw error;
-        }
-        throw new Response("Authentication error", { status: 500 });
+        throw handleAuthError(error);
       }
     };
   };
