@@ -10,6 +10,8 @@
     "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "db": "tsx scripts/db.ts",
     "migrate": "tsx scripts/migrate.ts",
     "sql": "tsx scripts/sql-query.ts",
@@ -47,6 +49,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@react-router/dev": "^7.5.3",
     "@remix-run/eslint-config": "^2.14.0",
     "@tailwindcss/vite": "^4.1.4",

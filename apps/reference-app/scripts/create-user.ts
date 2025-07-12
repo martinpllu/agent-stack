@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { drizzle } from 'drizzle-orm/aws-data-api/pg';
 import { RDSDataClient } from '@aws-sdk/client-rds-data';
-import { users } from '../app/db/schema';
+import { users, tasks } from '../app/db/schema';
 import { eq } from 'drizzle-orm';
 
 interface SST_Outputs {
@@ -113,6 +113,18 @@ export async function createUser(options: CreateUserOptions): Promise<CreateUser
     wasExisting = true;
     
     if (clean) {
+      const existingUserId = existingUser[0].id;
+      
+      // Delete all tasks belonging to this user first
+      const deletedTasks = await db
+        .delete(tasks)
+        .where(eq(tasks.userId, existingUserId))
+        .returning({ id: tasks.id });
+      
+      if (deletedTasks.length > 0) {
+        console.log(`Deleted ${deletedTasks.length} existing tasks for user ${email}`);
+      }
+      
       // Delete existing user
       await db
         .delete(users)
