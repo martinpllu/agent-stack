@@ -67,9 +67,16 @@ export function Layout({ children, user }: LayoutProps) {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                <span className="text-sm text-muted-foreground">
+                <Link 
+                  to="/user" 
+                  className={cn(
+                    navigationMenuTriggerStyle(),
+                    "text-sm h-9 px-4",
+                    location.pathname === "/user" && "bg-accent text-accent-foreground"
+                  )}
+                >
                   {user.email || user.properties?.email}
-                </span>
+                </Link>
                 <Form method="post">
                   <input type="hidden" name="intent" value="logout" />
                   <Button type="submit" variant="default" size="sm">

@@ -145,65 +145,26 @@ export default function Home() {
         {/* Access Levels Section */}
         <section className="bg-muted/50 rounded-lg p-8">
           <h2 className="text-3xl font-bold text-center mb-8 text-foreground">
-            {user ? `Welcome, ${user.properties.email}!` : "Access Levels"}
+            Access Levels
           </h2>
-          {user ? (
-            <div className="text-center space-y-4">
-              <p className="text-lg text-foreground">
-                You are logged in as {user.properties.isAdmin ? "an admin" : "a user"} and have 
-                {user.properties.isValidated ? " validated" : " unvalidated"} access to the task management system.
-              </p>
-              <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                <Card className="border-green-200 bg-green-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-green-800">
-                      <CheckCircle2 className="mr-2 h-5 w-5" />
-                      {user.properties.isAdmin ? "Admin User" : "Standard User"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="text-sm space-y-1 text-green-700">
-                      <li>• User ID: {user.properties.id}</li>
-                      <li>• Email: {user.properties.email}</li>
-                      <li>• Role: {user.properties.isAdmin ? "Administrator" : "User"}</li>
-                      <li>• Status: {user.properties.isValidated ? "Validated" : "Pending Validation"}</li>
-                    </ul>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Ready to get started?</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Link to="/tasks">
-                      <Button className="w-full">
-                        Go to Task Board
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </div>
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">User Access</h3>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Create new tasks</li>
+                <li>• Edit own tasks</li>
+                <li>• Update task status</li>
+              </ul>
             </div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">User Access</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Create new tasks</li>
-                  <li>• Edit own tasks</li>
-                  <li>• Update task status</li>
-                </ul>
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">Admin Access</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Full task management</li>
-                  <li>• Assign tasks to users</li>
-                  <li>• Delete any task</li>
-                </ul>
-              </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-foreground">Admin Access</h3>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Full task management</li>
+                <li>• Assign tasks to users</li>
+                <li>• Delete any task</li>
+              </ul>
             </div>
-          )}
+          </div>
         </section>
       </div>
     </Layout>
