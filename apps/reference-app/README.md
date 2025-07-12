@@ -36,7 +36,26 @@ pnpm install
 npx sst dev
 ```
 
-2. The app will be available at the URL shown in the SST output.
+2. Wait for SST to deploy (this may take a few minutes on first run). The app will be available at the URL shown in the SST output.
+
+3. Create an admin user for testing:
+```bash
+pnpm create-user --stage your-name --email test@example.com --admin
+```
+
+4. Open the web application URL from step 2 and click "Sign In".
+
+5. Enter the email address `test@example.com` and click "Send Login Code".
+
+6. **No email will be sent in development** - instead, check the SST console for the authentication code:
+   - In your SST console (where `npx sst dev` is running), click the **Functions** tab
+   - Click on **AuthFunction** 
+   - Look for a log entry containing: `Login code for test@example.com: XXXXXX`
+   - Copy the 6-digit code
+
+7. Enter the code in the web application to complete login.
+
+8. You can now use the application with full admin privileges!
 
 ## Database Setup
 
@@ -87,6 +106,8 @@ pnpm db sql "SELECT * FROM users;" --stage your-name  # Execute SQL
 pnpm migrate --stage your-name                        # Run migrations
 pnpm sql "SELECT * FROM users;" --stage your-name     # Execute SQL queries
 pnpm sql "SELECT COUNT(*) FROM tasks;" --stage production --db postgres
+pnpm create-user --stage your-name --email user@company.com         # Create regular user
+pnpm create-user --stage your-name --email admin@company.com --admin # Create admin user
 ```
 
 **Schema development workflow**:
@@ -96,6 +117,30 @@ pnpm sql "SELECT COUNT(*) FROM tasks;" --stage production --db postgres
 pnpm db generate --stage your-name
 # 3. Apply migrations
 pnpm db migrate --stage your-name
+```
+
+**User management**:
+```bash
+# Create regular user (isAdmin=false, isValidated=true)
+pnpm create-user --stage your-name --email user@company.com
+
+# Create admin user (isAdmin=true, isValidated=true)  
+pnpm create-user --stage your-name --email admin@company.com --admin
+
+# Replace existing user (delete and recreate)
+pnpm create-user --stage your-name --email user@company.com --clean --admin
+
+# Query users
+pnpm sql "SELECT email, is_admin, is_validated FROM users;" --stage your-name
+
+# Programmatic usage in tests/scripts:
+import { createUser } from './scripts/create-user';
+const result = await createUser({
+  email: 'test@example.com',
+  stage: 'test',
+  isAdmin: true,
+  clean: true
+});
 ```
 
 ## Access Levels

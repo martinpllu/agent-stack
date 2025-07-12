@@ -13,6 +13,7 @@
     "db": "tsx scripts/db.ts",
     "migrate": "tsx scripts/migrate.ts",
     "sql": "tsx scripts/sql-query.ts",
+    "create-user": "tsx scripts/create-user.ts",
     "delete-all-data": "tsx scripts/delete-all-data.ts"
   },
   "dependencies": {
