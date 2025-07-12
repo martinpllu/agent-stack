@@ -5,13 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { verifyAuth } from "~/auth/auth-server";
 import { redirect } from "react-router";
-
-interface User {
-  id: string;
-  email: string;
-  isAdmin: boolean;
-  isValidated: boolean;
-}
+import type { UserProfile } from "~/types/user";
+import { UserRepository } from "~/db/repositories/user.repository";
 
 export function meta() {
   return [
@@ -27,18 +22,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw redirect("/");
   }
   
-  const flattenedUser = {
-    id: user.properties.id,
-    email: user.properties.email,
-    isAdmin: user.properties.isAdmin,
-    isValidated: user.properties.isValidated
+  // Fetch complete user profile from database
+  const userRepository = new UserRepository();
+  const dbUser = await userRepository.findById(user.properties.id);
+  
+  if (!dbUser) {
+    throw redirect("/");
+  }
+  
+  const userProfile: UserProfile = {
+    id: dbUser.id,
+    email: dbUser.email,
+    isAdmin: dbUser.isAdmin,
+    isValidated: dbUser.isValidated,
+    lastLogin: dbUser.lastLogin,
+    createdAt: dbUser.createdAt
   };
   
-  return Response.json({ user: flattenedUser }, headers ? { headers } : undefined);
+  return Response.json({ user: userProfile }, headers ? { headers } : undefined);
 }
 
 export default function User() {
-  const { user } = useLoaderData<{ user: User }>();
+  const { user } = useLoaderData<{ user: UserProfile }>();
 
   return (
     <Layout user={user}>
@@ -77,6 +82,28 @@ export default function User() {
                 <span className="font-medium text-green-700">Status:</span>
                 <span className="text-green-600">
                   {user.isValidated ? "Validated" : "Pending Validation"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-green-700">Member Since:</span>
+                <span className="text-green-600">
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-green-700">Last Login:</span>
+                <span className="text-green-600">
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'Never'}
                 </span>
               </div>
             </div>

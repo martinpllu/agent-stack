@@ -1,6 +1,7 @@
 import { redirect } from "react-router";
 import { requireAuth, requireValidatedUser, requireAdmin } from "./auth-server";
 import { AuthError, handleAuthError } from "~/utils/error-handler";
+import type { FlatUser } from "~/types/user";
 
 export type AuthRole = "user" | "admin";
 
@@ -34,15 +35,14 @@ export async function requireValidatedUserRole(request: Request) {
   const result = await requireRole("user", request, { validated: true });
   
   // Return the user object with properties flattened for easier access
-  return {
-    user: {
-      id: result.user.properties.id,
-      email: result.user.properties.email,
-      isValidated: result.user.properties.isValidated,
-      isAdmin: result.user.properties.isAdmin
-    },
-    headers: result.headers
+  const flatUser: FlatUser = {
+    id: result.user.properties.id,
+    email: result.user.properties.email,
+    isValidated: result.user.properties.isValidated,
+    isAdmin: result.user.properties.isAdmin
   };
+  
+  return { user: flatUser, headers: result.headers };
 }
 
 export async function requireAdminRole(request: Request) {
@@ -58,15 +58,14 @@ export function createAuthLoader(
     try {
       const { user, headers } = await requireRole(role, request, options);
       
-      return {
-        user: {
-          id: user.properties.id,
-          email: user.properties.email,
-          isValidated: user.properties.isValidated,
-          isAdmin: user.properties.isAdmin
-        },
-        headers
+      const flatUser: FlatUser = {
+        id: user.properties.id,
+        email: user.properties.email,
+        isValidated: user.properties.isValidated,
+        isAdmin: user.properties.isAdmin
       };
+      
+      return { user: flatUser, headers };
     } catch (error) {
       throw handleAuthError(error);
     }
@@ -77,19 +76,19 @@ export function createAuthAction(
   role: AuthRole,
   options: AuthOptions = {}
 ) {
-  return (handler: (args: { request: Request; user: any; headers: Headers | null }) => Promise<any>) => {
+  return (handler: (args: { request: Request; user: FlatUser; headers: Headers | null }) => Promise<any>) => {
     return async ({ request }: { request: Request }) => {
       try {
         const { user, headers } = await requireRole(role, request, options);
         
-        const userData = {
+        const flatUser: FlatUser = {
           id: user.properties.id,
           email: user.properties.email,
           isValidated: user.properties.isValidated,
           isAdmin: user.properties.isAdmin
         };
         
-        return await handler({ request, user: userData, headers });
+        return await handler({ request, user: flatUser, headers });
       } catch (error) {
         throw handleAuthError(error);
       }

@@ -9,17 +9,11 @@ import {
   navigationMenuTriggerStyle,
 } from "./ui/navigation-menu";
 import { cn } from "~/utils";
-
-interface User {
-  id: string;
-  email: string;
-  isAdmin: boolean;
-  isValidated: boolean;
-}
+import type { FlatUser } from "~/types/user";
 
 interface LayoutProps {
   children: React.ReactNode;
-  user?: User | null;
+  user?: FlatUser | null;
 }
 
 export function Layout({ children, user }: LayoutProps) {

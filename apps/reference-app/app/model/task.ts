@@ -1,5 +1,6 @@
+import type { User, UserRole } from "~/types/user";
+
 export type TaskStatus = "todo" | "in_progress" | "done";
-export type UserRole = "user" | "admin";
 
 export interface Task {
   id: string;
@@ -11,15 +12,8 @@ export interface Task {
   updatedAt: Date;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  lastLogin?: Date;
-  isAdmin: boolean;
-  isValidated: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export User and UserRole for backward compatibility
+export type { User, UserRole };
 
 export interface CreateTaskInput {
   title: string;

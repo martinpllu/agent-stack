@@ -2,6 +2,7 @@ import { createClient } from "@openauthjs/openauth/client"
 import { subjects } from "../../auth/subjects"
 import { Resource } from "sst"
 import { AuthError } from "~/utils/error-handler"
+import type { FlatUser } from "~/types/user"
 
 export const client = createClient({
   clientID: "react-router",
@@ -104,15 +105,14 @@ export async function requireValidatedUser(request: Request) {
   }
   
   // Return flattened user object for consistent access patterns
-  return { 
-    user: {
-      id: user.properties.id,
-      email: user.properties.email,
-      isValidated: user.properties.isValidated,
-      isAdmin: user.properties.isAdmin
-    }, 
-    headers 
+  const flatUser: FlatUser = {
+    id: user.properties.id,
+    email: user.properties.email,
+    isValidated: user.properties.isValidated,
+    isAdmin: user.properties.isAdmin
   };
+  
+  return { user: flatUser, headers };
 }
 
 export async function requireAdmin(request: Request) {
@@ -123,13 +123,12 @@ export async function requireAdmin(request: Request) {
   }
   
   // Return flattened user object for consistent access patterns
-  return { 
-    user: {
-      id: user.properties.id,
-      email: user.properties.email,
-      isValidated: user.properties.isValidated,
-      isAdmin: user.properties.isAdmin
-    }, 
-    headers 
+  const flatUser: FlatUser = {
+    id: user.properties.id,
+    email: user.properties.email,
+    isValidated: user.properties.isValidated,
+    isAdmin: user.properties.isAdmin
   };
+  
+  return { user: flatUser, headers };
 } 

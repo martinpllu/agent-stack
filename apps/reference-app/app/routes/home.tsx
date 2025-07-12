@@ -1,12 +1,6 @@
 import { Link, Form, useLoaderData, useSearchParams } from "react-router";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-
-interface User {
-  id: string;
-  email: string;
-  isAdmin: boolean;
-  isValidated: boolean;
-}
+import type { FlatUser } from "~/types/user";
 import { Layout } from "~/components/layout";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
@@ -25,7 +19,7 @@ export function meta() {
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user, headers } = await verifyAuth(request)
   
-  const flattenedUser = user ? {
+  const flattenedUser: FlatUser | null = user ? {
     id: user.properties.id,
     email: user.properties.email,
     isAdmin: user.properties.isAdmin,
@@ -49,7 +43,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Home() {
-  const { user } = useLoaderData<{ user: User | null }>()
+  const { user } = useLoaderData<{ user: FlatUser | null }>()
   const [searchParams] = useSearchParams()
   const error = searchParams.get("error")
 
