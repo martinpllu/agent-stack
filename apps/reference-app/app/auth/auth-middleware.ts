@@ -32,21 +32,29 @@ export async function requireRole(
 
 // Convenience functions for common use cases
 export async function requireValidatedUserRole(request: Request) {
-  const result = await requireRole("user", request, { validated: true });
-  
-  // Return the user object with properties flattened for easier access
-  const flatUser: FlatUser = {
-    id: result.user.properties.id,
-    email: result.user.properties.email,
-    isValidated: result.user.properties.isValidated,
-    isAdmin: result.user.properties.isAdmin
-  };
-  
-  return { user: flatUser, headers: result.headers };
+  try {
+    const result = await requireRole("user", request, { validated: true });
+    
+    // Return the user object with properties flattened for easier access
+    const flatUser: FlatUser = {
+      id: result.user.properties.id,
+      email: result.user.properties.email,
+      isValidated: result.user.properties.isValidated,
+      isAdmin: result.user.properties.isAdmin
+    };
+    
+    return { user: flatUser, headers: result.headers };
+  } catch (error) {
+    throw handleAuthError(error);
+  }
 }
 
 export async function requireAdminRole(request: Request) {
-  return requireRole("admin", request);
+  try {
+    return await requireRole("admin", request);
+  } catch (error) {
+    throw handleAuthError(error);
+  }
 }
 
 // Route-level middleware helpers

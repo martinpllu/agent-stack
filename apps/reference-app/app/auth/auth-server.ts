@@ -1,24 +1,16 @@
-import { createClient } from "@openauthjs/openauth/client"
-import { subjects } from "../../auth/subjects"
 import { Resource } from "sst"
 import { AuthError } from "~/utils/error-handler"
 import type { FlatUser } from "~/types/user"
 
-export const client = createClient({
-  clientID: "react-router",
-  issuer: Resource.MyAuth.url
-})
+// Get auth backend URL from SST resource
+export const authBackendUrl = Resource.AuthFunction.url
 
-export async function setTokens(access: string, refresh: string) {
+export async function setTokens(access: string) {
   const headers = new Headers()
   
   headers.append(
     "Set-Cookie",
-    `access_token=${access}; HttpOnly; Path=/; Max-Age=34560000; SameSite=Lax`
-  )
-  headers.append(
-    "Set-Cookie", 
-    `refresh_token=${refresh}; HttpOnly; Path=/; Max-Age=34560000; SameSite=Lax`
+    `access_token=${access}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`
   )
   
   return headers
@@ -31,25 +23,20 @@ export function clearTokens() {
     "Set-Cookie",
     `access_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
   )
-  headers.append(
-    "Set-Cookie",
-    `refresh_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
-  )
   
   return headers
 }
 
 export function getTokensFromRequest(request: Request) {
   const cookieHeader = request.headers.get("Cookie")
-  if (!cookieHeader) return { access: null, refresh: null }
+  if (!cookieHeader) return { access: null }
   
   const cookies = Object.fromEntries(
     cookieHeader.split("; ").map(c => c.split("="))
   )
   
   return {
-    access: cookies.access_token || null,
-    refresh: cookies.refresh_token || null
+    access: cookies.access_token || null
   }
 }
 
@@ -61,21 +48,27 @@ export async function verifyAuth(request: Request) {
   }
 
   try {
-    const verified = await client.verify(subjects, tokens.access, {
-      refresh: tokens.refresh || undefined,
-    })
-
-    if (verified.err) {
+    // Decode our simple base64 token
+    const decodedString = Buffer.from(tokens.access, 'base64').toString()
+    const tokenData = JSON.parse(decodedString)
+    
+    // Check if token is expired
+    if (tokenData.exp && Date.now() > tokenData.exp) {
       return { user: null, headers: clearTokens() }
     }
     
-    // If tokens were refreshed, return new headers
-    let headers = null
-    if (verified.tokens) {
-      headers = await setTokens(verified.tokens.access, verified.tokens.refresh)
+    // Create user object in the expected format
+    const user = {
+      type: "user" as const,
+      properties: {
+        id: tokenData.id,
+        email: tokenData.email,
+        isAdmin: tokenData.isAdmin,
+        isValidated: tokenData.isValidated,
+      }
     }
 
-    return { user: verified.subject, headers }
+    return { user, headers: null }
   } catch (error) {
     console.error("Auth verification error:", error)
     return { user: null, headers: clearTokens() }

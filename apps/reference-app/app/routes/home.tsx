@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { CheckCircle2, Users, BarChart3, LogIn, LogOut, AlertCircle } from "lucide-react";
 import { verifyAuth } from "~/auth/auth-server";
-import { loginAction, logoutAction } from "~/auth/auth-actions";
+import { logoutAction } from "~/auth/auth-actions";
 import { AppError } from "~/utils/error-handler";
 
 export function meta() {
@@ -34,7 +34,9 @@ export async function action({ request }: ActionFunctionArgs) {
   const intent = formData.get("intent")
   
   if (intent === "login") {
-    return loginAction(request)
+    // Redirect to login page instead of calling loginAction
+    const { redirect } = await import("react-router")
+    return redirect("/auth/login")
   } else if (intent === "logout") {
     return logoutAction()
   }

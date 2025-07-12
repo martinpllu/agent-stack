@@ -1,5 +1,5 @@
 import { useLoaderData } from "react-router";
-import type { LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { Layout } from "~/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
@@ -7,6 +7,8 @@ import { verifyAuth } from "~/auth/auth-server";
 import { redirect } from "react-router";
 import type { UserProfile } from "~/types/user";
 import { UserRepository } from "~/db/repositories/user.repository";
+import { logoutAction } from "~/auth/auth-actions";
+import { AppError } from "~/utils/error-handler";
 
 export function meta() {
   return [
@@ -40,6 +42,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
   
   return Response.json({ user: userProfile }, headers ? { headers } : undefined);
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  
+  if (intent === "logout") {
+    return logoutAction();
+  }
+  
+  throw AppError.badRequest("Invalid action");
 }
 
 export default function User() {

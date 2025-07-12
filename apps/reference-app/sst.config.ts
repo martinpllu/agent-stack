@@ -83,22 +83,21 @@ export default $config({
       primaryIndex: { hashKey: "pk", rangeKey: "sk" },
     });
     
-    const auth = new sst.aws.Auth("MyAuth", {
-        issuer: {
-          handler: "auth/index.handler",
-          environment: {
-            OPENAUTH_STORAGE_TABLE: authTable.name,
-            // Aurora Data API configuration (standardized approach)
-            DB_DATABASE: stageDatabaseName,
-            DB_CLUSTER_ARN: database.clusterArn,
-            DB_SECRET_ARN: database.secretArn,
-            AWS_REGION: aws.getRegionOutput().name,
-            // Official SST dev mode detection
-            SST_DEV: $dev ? "true" : "false",
-          },
-          link: [authTable, database],
-        },
-      });
+    const auth = new sst.aws.Function("AuthFunction", {
+      handler: "auth/index.handler",
+      environment: {
+        OPENAUTH_STORAGE_TABLE: authTable.name,
+        // Aurora Data API configuration (standardized approach)
+        DB_DATABASE: stageDatabaseName,
+        DB_CLUSTER_ARN: database.clusterArn,
+        DB_SECRET_ARN: database.secretArn,
+        AWS_REGION: aws.getRegionOutput().name,
+        // Official SST dev mode detection
+        SST_DEV: $dev ? "true" : "false",
+      },
+      link: [authTable, database],
+      url: true,
+    });
     
     new sst.aws.React("web", {
       vpc,
@@ -108,8 +107,10 @@ export default $config({
         DB_CLUSTER_ARN: database.clusterArn,
         DB_SECRET_ARN: database.secretArn,
         AWS_REGION: aws.getRegionOutput().name,
+        // Auth backend URL for custom login flow
+        AUTH_BACKEND_URL: auth.url,
       },
-      link: [auth],
+      link: [auth, authTable, database],
     });
 
     return {
@@ -122,7 +123,7 @@ export default $config({
       },
       auth: {
         table: authTable.name,
-        issuer: auth.issuer,
+        url: auth.url,
       },
     };
   },
