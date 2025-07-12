@@ -11,13 +11,10 @@ import {
 import { cn } from "~/lib/utils";
 
 interface User {
-  type: string;
-  properties: {
-    id: string;
-    email: string;
-    isAdmin: boolean;
-    isValidated: boolean;
-  };
+  id: string;
+  email: string;
+  isAdmin: boolean;
+  isValidated: boolean;
 }
 
 interface LayoutProps {
@@ -75,7 +72,7 @@ export function Layout({ children, user }: LayoutProps) {
                     location.pathname === "/user" && "bg-accent text-accent-foreground"
                   )}
                 >
-                  {user.email || user.properties?.email}
+                  {user.email}
                 </Link>
                 <Form method="post">
                   <input type="hidden" name="intent" value="logout" />

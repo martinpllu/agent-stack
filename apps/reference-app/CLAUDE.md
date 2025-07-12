@@ -14,3 +14,7 @@
 - Always run `[ -f ./env.sh ] && source ./env.sh` before any AWS CLI commands. 
 - Only run read-only AWS CLI commands unless explicitly instructed by the user.
 - DO NOT run `sst deploy` against the same stage that is being used for `sst dev`. Ask the user what stage they would like to deploy to.
+
+# General
+
+- Run `pnpm typecheck` after making code changes to check for compile errors

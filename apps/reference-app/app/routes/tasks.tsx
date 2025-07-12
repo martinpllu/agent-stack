@@ -10,6 +10,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { useState } from "react";
+import type { TaskStatus } from "../../lib/types/task";
 
 const taskRepository = new TaskRepository();
 
@@ -106,9 +107,18 @@ export default function TasksPage() {
 
   // Convert the new column structure to the old one that TaskBoard expects
   const compatibleTasksByColumn = {
-    backlog: tasksByColumn.todo,
-    "in-progress": tasksByColumn.in_progress, 
-    done: tasksByColumn.done,
+    backlog: tasksByColumn.todo.map(task => ({
+      ...task,
+      status: task.status as TaskStatus
+    })),
+    "in-progress": tasksByColumn.in_progress.map(task => ({
+      ...task,
+      status: task.status as TaskStatus
+    })), 
+    done: tasksByColumn.done.map(task => ({
+      ...task,
+      status: task.status as TaskStatus
+    })),
   };
 
   return (

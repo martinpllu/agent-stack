@@ -2,13 +2,10 @@ import { Link, Form, useLoaderData, useSearchParams } from "react-router";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 
 interface User {
-  type: string;
-  properties: {
-    id: string;
-    email: string;
-    isAdmin: boolean;
-    isValidated: boolean;
-  };
+  id: string;
+  email: string;
+  isAdmin: boolean;
+  isValidated: boolean;
 }
 import { Layout } from "~/components/layout";
 import { Button } from "~/components/ui/button";
@@ -27,7 +24,14 @@ export function meta() {
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user, headers } = await verifyAuth(request)
   
-  return Response.json({ user: user as User | null }, headers ? { headers } : undefined)
+  const flattenedUser = user ? {
+    id: user.properties.id,
+    email: user.properties.email,
+    isAdmin: user.properties.isAdmin,
+    isValidated: user.properties.isValidated
+  } : null
+  
+  return Response.json({ user: flattenedUser }, headers ? { headers } : undefined)
 }
 
 export async function action({ request }: ActionFunctionArgs) {
