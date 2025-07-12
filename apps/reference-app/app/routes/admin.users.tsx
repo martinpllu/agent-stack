@@ -1,5 +1,5 @@
-import { requireAdminRole } from "~/lib/auth-middleware";
-import { UserRepository } from "../../lib/repositories/user.repository";
+import { requireAdminRole } from "~/auth/auth-middleware";
+import { UserRepository } from "~/db/repositories/user.repository";
 
 const userRepository = new UserRepository();
 

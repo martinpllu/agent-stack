@@ -11,8 +11,8 @@ import { Layout } from "~/components/layout";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { CheckCircle2, Users, BarChart3, LogIn, LogOut, AlertCircle } from "lucide-react";
-import { verifyAuth } from "~/lib/auth-server";
-import { loginAction, logoutAction } from "~/lib/auth-actions";
+import { verifyAuth } from "~/auth/auth-server";
+import { loginAction, logoutAction } from "~/auth/auth-actions";
 
 export function meta() {
   return [

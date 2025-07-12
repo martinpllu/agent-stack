@@ -1,8 +1,8 @@
 import { redirect, Link, isRouteErrorResponse, useRouteError } from "react-router";
 import { useLoaderData, Form, useActionData } from "react-router";
-import { requireValidatedUserRole } from "~/lib/auth-middleware";
-import { TaskRepository } from "../../lib/repositories/task.repository";
-import { logoutAction } from "~/lib/auth-actions";
+import { requireValidatedUserRole } from "~/auth/auth-middleware";
+import { TaskRepository } from "~/db/repositories/task.repository";
+import { logoutAction } from "~/auth/auth-actions";
 import { Layout } from "~/components/layout";
 import { TaskBoard } from "~/components/tasks/task-board";
 import { Button } from "~/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { useState } from "react";
-import type { TaskStatus } from "../../lib/types/task";
+import type { TaskStatus } from "~/model/task";
 
 const taskRepository = new TaskRepository();
 

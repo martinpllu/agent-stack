@@ -8,7 +8,7 @@ import {
   NavigationMenuLink,
   navigationMenuTriggerStyle,
 } from "./ui/navigation-menu";
-import { cn } from "~/lib/utils";
+import { cn } from "~/utils";
 
 interface User {
   id: string;

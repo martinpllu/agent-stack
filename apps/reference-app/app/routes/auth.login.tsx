@@ -1,5 +1,5 @@
 import { redirect } from "react-router";
-import { loginAction } from "~/lib/auth-actions";
+import { loginAction } from "~/auth/auth-actions";
 
 export async function action({ request }: { request: Request }) {
   return loginAction(request);

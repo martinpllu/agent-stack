@@ -1,7 +1,7 @@
 import { eq, desc, and, sql } from "drizzle-orm";
-import { db } from "../db/client";
-import { tasks, type Task, type NewTask } from "../db/schema";
-import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from "../types/task";
+import { db } from "../client";
+import { tasks, type Task, type NewTask } from "../schema";
+import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from "~/model/task";
 
 export class TaskRepository {
   async findByUserId(userId: string, filters?: { status?: TaskStatus }): Promise<Task[]> {

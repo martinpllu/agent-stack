@@ -1,6 +1,6 @@
 import { redirect } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
-import { client, setTokens } from "~/lib/auth-server"
+import { client, setTokens } from "~/auth/auth-server"
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url)

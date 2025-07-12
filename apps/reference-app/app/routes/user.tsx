@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { Layout } from "~/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
-import { verifyAuth } from "~/lib/auth-server";
+import { verifyAuth } from "~/auth/auth-server";
 import { redirect } from "react-router";
 
 interface User {

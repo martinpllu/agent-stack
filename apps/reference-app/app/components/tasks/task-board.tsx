@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { TaskCard } from "./task-card";
-import type { Task } from "../../../lib/types/task";
+import type { Task } from "~/model/task";
 
 interface TaskBoardProps {
   tasksByColumn: {

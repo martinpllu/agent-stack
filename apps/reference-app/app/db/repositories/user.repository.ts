@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
-import { db } from "../db/client";
-import { users, type User, type NewUser } from "../db/schema";
+import { db } from "../client";
+import { users, type User, type NewUser } from "../schema";
 
 export class UserRepository {
   async findByEmail(email: string): Promise<User | null> {

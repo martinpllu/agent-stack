@@ -2,11 +2,10 @@ import { handle } from "hono/aws-lambda"
 import { issuer } from "@openauthjs/openauth"
 import { CodeUI } from "@openauthjs/openauth/ui/code"
 import { CodeProvider } from "@openauthjs/openauth/provider/code"
-import { MemoryStorage } from "@openauthjs/openauth/storage/memory"
 import { DynamoStorage } from "@openauthjs/openauth/storage/dynamo"
 import { FileStorage } from "./file-storage"
 import { subjects } from "./subjects"
-import { UserRepository } from "../lib/repositories/user.repository"
+import { UserRepository } from "../app/db/repositories/user.repository"
 
 // // Simple in-memory user store for demo purposes
 // // In production, this would be a database
