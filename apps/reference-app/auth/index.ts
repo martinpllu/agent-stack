@@ -49,6 +49,20 @@ app.post('/code/send', async (c) => {
       return c.json({ message: 'Email is required' }, 400)
     }
     
+    // Check if user exists and is validated
+    const userRepo = new UserRepository()
+    const user = await userRepo.findByEmail(email)
+    
+    if (!user) {
+      console.error(`[Auth] Login attempt for non-existent user: ${email}`)
+      return c.json({ message: 'User not found. Please contact an administrator.' }, 403)
+    }
+    
+    if (!user.isValidated) {
+      console.error(`[Auth] Login attempt for unvalidated user: ${email}`)
+      return c.json({ message: 'Account not validated. Please contact an administrator.' }, 403)
+    }
+    
     // Generate a random 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     
@@ -58,6 +72,9 @@ app.post('/code/send', async (c) => {
     
     // Send the code
     await sendCode(email, code)
+    
+    // Log successful code issuance
+    console.log(`[Auth] Verification code issued for validated user: ${email}`)
     
     return c.json({ message: 'Verification code sent' })
   } catch (error) {
@@ -86,9 +103,15 @@ app.post('/code/verify', async (c) => {
     // Clean up the stored code
     await storage.remove(key)
     
-    // Create user session
+    // Find existing user (should already be validated since they got a code)
     const userRepo = new UserRepository()
-    const user = await userRepo.findOrCreate(email)
+    const user = await userRepo.findByEmail(email)
+    
+    if (!user) {
+      console.error(`[Auth] Code verification attempted for non-existent user: ${email}`)
+      return c.json({ message: 'User not found' }, 400)
+    }
+    
     await userRepo.updateLastLogin(user.id)
     
     // Generate access token (simplified - in production use proper JWT)
