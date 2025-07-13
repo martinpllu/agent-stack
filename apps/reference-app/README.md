@@ -29,6 +29,21 @@ A demo application built with the agent-stack patterns, featuring:
 pnpm install
 ```
 
+### Database Setup
+
+This application uses **Aurora Serverless v2 PostgreSQL** as its database. To set up the database infrastructure:
+
+```bash
+npx sst deploy --stage dev
+```
+
+**Important notes:**
+- This creates a shared Aurora cluster that all development environments use (development environments are SST stages other than 'production')
+- Each development environment gets its own isolated postgres database inside the development cluster. 
+- The cluster is configured with auto-pause to minimize costs when not in use
+- **This will incur AWS charges** - see [Aurora Serverless v2 pricing](https://aws.amazon.com/rds/aurora/pricing/)
+- The database typically costs ~$0.12/hour when active, but auto-pauses after 10 minutes of inactivity. You may see delays of a few seconds (10-20s) in dev environments as the database resumes after being paused.
+
 ### Development
 
 1. Start SST in development mode (in a separate terminal):
