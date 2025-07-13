@@ -2,6 +2,8 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 
 function loadEnvFromOutputs(stage?: string) {
   try {
@@ -29,13 +31,14 @@ function loadEnvFromOutputs(stage?: string) {
 }
 
 // If called directly, load env and run the command passed as arguments
-if (require.main === module) {
+const __filename = fileURLToPath(import.meta.url);
+
+if (process.argv[1] === __filename) {
   loadEnvFromOutputs();
   
   // Run the command passed as arguments
   const args = process.argv.slice(2);
   if (args.length > 0) {
-    const { spawn } = require('child_process');
     const child = spawn(args[0], args.slice(1), { 
       stdio: 'inherit',
       env: process.env 

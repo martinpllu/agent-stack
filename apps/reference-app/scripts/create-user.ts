@@ -4,6 +4,8 @@ import { Command } from 'commander';
 import { createDrizzleDb } from '../app/db/client.js';
 import { users, tasks } from '../app/db/schema';
 import { eq } from 'drizzle-orm';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 export interface CreateUserOptions {
   email: string;
@@ -101,7 +103,9 @@ export async function createUser(options: CreateUserOptions): Promise<CreateUser
 }
 
 // CLI Command handling
-if (require.main === module) {
+const __filename = fileURLToPath(import.meta.url);
+
+if (process.argv[1] === __filename) {
   const program = new Command();
   
   program
