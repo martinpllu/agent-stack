@@ -91,7 +91,6 @@ export default $config({
         DB_DATABASE: stageDatabaseName,
         DB_CLUSTER_ARN: database.clusterArn,
         DB_SECRET_ARN: database.secretArn,
-        AWS_REGION: aws.getRegionOutput().name,
         // Official SST dev mode detection
         SST_DEV: $dev ? "true" : "false",
       },
@@ -106,7 +105,6 @@ export default $config({
         DB_DATABASE: stageDatabaseName,
         DB_CLUSTER_ARN: database.clusterArn,
         DB_SECRET_ARN: database.secretArn,
-        AWS_REGION: aws.getRegionOutput().name,
         // Auth backend URL for custom login flow
         AUTH_BACKEND_URL: auth.url,
       },

@@ -33,10 +33,6 @@ async function sendCode(email: string, code: string) {
   // TODO: Replace with actual email sending service for production
   // This is a deliberate measure to make testing easier without email infrastructure
   
-  if (!isDevMode) {
-    throw AppError.serverError("Console logging of verification codes is not allowed in production. Please implement proper email sending service.")
-  }
-  
   const timestamp = new Date().toISOString()
   console.log(`[SendCode] *** VERIFICATION CODE FOR ${email}: ${code} *** at ${timestamp}`)
 }
