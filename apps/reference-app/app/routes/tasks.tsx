@@ -3,7 +3,7 @@ import { useLoaderData, Form, useActionData } from "react-router";
 import { requireValidatedUserRole } from "~/auth/auth-middleware";
 import { TaskRepository } from "~/db/repositories/task.repository";
 import { logoutAction } from "~/auth/auth-actions";
-import { AuthError, AppError } from "~/utils/error-handler";
+import { AuthError, AppError, type ErrorResponse } from "~/utils/error-handler";
 import { Layout } from "~/components/layout";
 import { TaskBoard } from "~/components/tasks/task-board";
 import { Button } from "~/components/ui/button";
@@ -207,28 +207,56 @@ export function ErrorBoundary() {
   const error = useRouteError();
   
   if (isRouteErrorResponse(error)) {
-    if (error.status === 403 && error.data === "Account not validated") {
+    // Handle structured error responses from our error-handler utilities
+    if (error.data && typeof error.data === 'object' && 'type' in error.data) {
+      const errorData = error.data as ErrorResponse;
+      
+      // Handle not validated error
+      if (errorData.code === 'NOT_VALIDATED') {
+        return (
+          <Layout>
+            <div className="max-w-2xl mx-auto mt-8 p-6">
+              <Card className="border-yellow-200 bg-yellow-50">
+                <CardHeader>
+                  <CardTitle className="text-yellow-800">Account Validation Required</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-yellow-700">
+                    Please contact an administrator to get your account validated.
+                  </p>
+                  <div className="pt-4">
+                    <Link to="/">
+                      <Button variant="outline" className="border-yellow-300 text-yellow-800 hover:bg-yellow-100">
+                        Back to Home
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </Layout>
+        );
+      }
+      
+      // Handle other structured errors
       return (
         <Layout>
           <div className="max-w-2xl mx-auto mt-8 p-6">
-            <Card className="border-yellow-200 bg-yellow-50">
+            <Card className="border-red-200 bg-red-50">
               <CardHeader>
-                <CardTitle className="text-yellow-800">Account Validation Required</CardTitle>
+                <CardTitle className="text-red-800">
+                  {errorData.type === 'AUTHENTICATION' ? 'Authentication Required' :
+                   errorData.type === 'AUTHORIZATION' ? 'Access Denied' :
+                   `Error ${error.status}`}
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-yellow-700">
-                  Your account needs to be validated before you can access the tasks page.
-                </p>
-                <p className="text-yellow-700">
-                  Please check your email for a validation link, or contact support if you need assistance.
-                </p>
-                <div className="pt-4">
-                  <Link to="/">
-                    <Button variant="outline" className="border-yellow-300 text-yellow-800 hover:bg-yellow-100">
-                      Back to Home
-                    </Button>
-                  </Link>
-                </div>
+              <CardContent>
+                <p className="text-red-700">{errorData.message}</p>
+                <Link to="/" className="inline-block mt-4">
+                  <Button variant="outline" className="border-red-300 text-red-800 hover:bg-red-100">
+                    Back to Home
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
@@ -236,7 +264,7 @@ export function ErrorBoundary() {
       );
     }
     
-    // Handle other error responses
+    // Handle non-structured error responses
     return (
       <Layout>
         <div className="max-w-2xl mx-auto mt-8 p-6">
@@ -247,7 +275,9 @@ export function ErrorBoundary() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-red-700">{error.data || "An unexpected error occurred."}</p>
+              <p className="text-red-700">
+                {typeof error.data === 'string' ? error.data : "An unexpected error occurred."}
+              </p>
               <Link to="/" className="inline-block mt-4">
                 <Button variant="outline" className="border-red-300 text-red-800 hover:bg-red-100">
                   Back to Home
