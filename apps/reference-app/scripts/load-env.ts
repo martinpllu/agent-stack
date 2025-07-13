@@ -23,7 +23,7 @@ function loadEnvFromOutputs(stage?: string) {
     console.log(`Environment loaded for stage: ${database}`);
     return { clusterArn, secretArn, database };
   } catch (error) {
-    console.error('Failed to load environment from SST outputs:', error.message);
+    console.error('Failed to load environment from SST outputs:', (error as Error).message);
     process.exit(1);
   }
 }
@@ -41,7 +41,7 @@ if (require.main === module) {
       env: process.env 
     });
     
-    child.on('exit', (code) => {
+    child.on('exit', (code: number | null) => {
       process.exit(code || 0);
     });
   }

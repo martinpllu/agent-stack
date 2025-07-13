@@ -1,27 +1,9 @@
 #!/usr/bin/env tsx
 
 import { Command } from 'commander';
-import { readFileSync } from 'fs';
-import { drizzle } from 'drizzle-orm/aws-data-api/pg';
-import { RDSDataClient } from '@aws-sdk/client-rds-data';
+import { createDrizzleDb } from '../app/db/client.js';
 import { users, tasks } from '../app/db/schema';
 import { eq } from 'drizzle-orm';
-
-interface SST_Outputs {
-  database: {
-    clusterArn: string;
-    secretArn: string;
-    database: string;
-  };
-}
-
-interface DatabaseConfig {
-  database: string;
-  secretArn: string;
-  resourceArn: string;
-  region: string;
-  stage: string;
-}
 
 export interface CreateUserOptions {
   email: string;
@@ -38,33 +20,6 @@ export interface CreateUserResult {
   createdAt: Date;
   wasExisting: boolean;
   wasDeleted: boolean;
-}
-
-// Load and set up environment from SST outputs for a specific stage
-function setupEnvironment(stage: string): DatabaseConfig {
-  try {
-    const outputsPath = '.sst/outputs.json';
-    const outputs: SST_Outputs = JSON.parse(readFileSync(outputsPath, 'utf8'));
-    
-    if (!outputs.database) {
-      throw new Error('Database outputs not found in .sst/outputs.json');
-    }
-
-    const { clusterArn, secretArn } = outputs.database;
-    
-    // Convert stage to database name (replace hyphens with underscores)
-    const stageDatabaseName = stage.replace(/-/g, "_");
-    
-    return {
-      database: stageDatabaseName,
-      secretArn: secretArn,
-      resourceArn: clusterArn,
-      region: process.env.AWS_REGION || "eu-west-1",
-      stage: stage
-    };
-  } catch (error) {
-    throw new Error('Error loading database config from .sst/outputs.json. Make sure SST is running locally with "npx sst dev"');
-  }
 }
 
 function isValidEmail(email: string): boolean {
@@ -85,132 +40,101 @@ export async function createUser(options: CreateUserOptions): Promise<CreateUser
     throw new Error('Invalid email format provided');
   }
 
-  const config = setupEnvironment(stage);
+  // Create database instance using centralized client with retry logic
+  const db = createDrizzleDb(stage);
   
-  // Create RDS Data client
-  const rdsClient = new RDSDataClient({ 
-    region: config.region 
-  });
-  
-  // Create Drizzle instance for Data API
-  const db = drizzle(rdsClient, {
-    database: config.database,
-    secretArn: config.secretArn,
-    resourceArn: config.resourceArn,
-  });
-  
-  // Check if user already exists
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-  
-  let wasExisting = false;
-  let wasDeleted = false;
-  
-  if (existingUser.length > 0) {
-    wasExisting = true;
+  try {
+    // Check if user already exists
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
     
-    if (clean) {
-      const existingUserId = existingUser[0].id;
-      
-      // Delete all tasks belonging to this user first
-      const deletedTasks = await db
-        .delete(tasks)
-        .where(eq(tasks.userId, existingUserId))
-        .returning({ id: tasks.id });
-      
-      if (deletedTasks.length > 0) {
-        console.log(`Deleted ${deletedTasks.length} existing tasks for user ${email}`);
+    if (existingUser.length > 0) {
+      if (!clean) {
+        throw new Error(`User with email ${email} already exists. Use --clean to recreate.`);
       }
       
-      // Delete existing user
-      await db
-        .delete(users)
-        .where(eq(users.email, email));
-      wasDeleted = true;
-    } else {
-      // Fail if user exists and clean flag not set
-      throw new Error(`User with email '${email}' already exists. Use --clean to delete and recreate.`);
-    }
-  }
-  
-  // Create new user
-  const newUser = await db
-    .insert(users)
-    .values({
-      email: email,
-      isAdmin: isAdmin,
-      isValidated: true, // Always create validated users
-    })
-    .returning();
-  
-  return {
-    id: newUser[0].id,
-    email: newUser[0].email,
-    isAdmin: newUser[0].isAdmin,
-    isValidated: newUser[0].isValidated,
-    createdAt: newUser[0].createdAt!,
-    wasExisting,
-    wasDeleted
-  };
-}
-
-async function createUserCLI(email: string, stage: string, isAdmin: boolean, clean: boolean): Promise<void> {
-  try {
-    console.log('🚀 Creating user...');
-    console.log(`📧 Email: ${email}`);
-    console.log(`👑 Admin: ${isAdmin ? 'Yes' : 'No'}`);
-    console.log(`🗃️  Stage: ${stage}`);
-    if (clean) {
-      console.log('🧹 Clean mode: Will delete existing user if found');
-    }
-    console.log('');
-    
-    const result = await createUser({
-      email,
-      stage,
-      isAdmin,
-      clean
-    });
-    
-    if (result.wasExisting && result.wasDeleted) {
-      console.log('🗑️  Existing user deleted');
+      // Delete existing user and their tasks
+      await db.delete(tasks).where(eq(tasks.userId, existingUser[0].id));
+      await db.delete(users).where(eq(users.email, email));
+      
+      // Create new user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email,
+          isAdmin,
+          isValidated: true
+        })
+        .returning();
+      
+      return {
+        ...newUser,
+        wasExisting: true,
+        wasDeleted: true
+      };
     }
     
-    console.log('🎉 User created successfully!');
-    console.log(`👤 User ID: ${result.id}`);
-    console.log(`📧 Email: ${result.email}`);
-    console.log(`👑 Admin: ${result.isAdmin ? 'Yes' : 'No'}`);
-    console.log(`✓ Validated: ${result.isValidated ? 'Yes' : 'No'}`);
-    console.log(`📅 Created: ${result.createdAt}`);
-    console.log('');
-    console.log('💡 The user can now log in to the application.');
+    // Create new user
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        email,
+        isAdmin,
+        isValidated: true
+      })
+      .returning();
     
+    return {
+      ...newUser,
+      wasExisting: false,
+      wasDeleted: false
+    };
   } catch (error) {
-    console.error('❌ Failed to create user:', error.message);
-    process.exit(1);
+    if ((error as Error).message?.includes('Database configuration not found')) {
+      throw new Error('Error loading database config. Make sure SST is running locally with "npx sst dev"');
+    }
+    throw error;
   }
 }
 
-// CLI interface - only run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI Command handling
+if (require.main === module) {
   const program = new Command();
-
+  
   program
     .name('create-user')
     .description('Create a user in the database')
     .version('1.0.0')
+    .requiredOption('-e, --email <email>', 'User email address')
     .requiredOption('-s, --stage <stage>', 'Stage name (e.g., martin, dev, production)')
-    .requiredOption('-e, --email <email>', 'Email address for the user')
-    .option('--admin', 'Create user as admin (default: false)')
-    .option('--clean', 'Delete existing user if found before creating (default: false)')
+    .option('-a, --admin', 'Create user as admin', false)
+    .option('-c, --clean', 'Delete existing user before creating', false)
     .action(async () => {
-      const { stage, email, admin, clean } = program.opts();
-      await createUserCLI(email, stage, !!admin, !!clean);
+      const options = program.opts() as CreateUserOptions;
+      
+      try {
+        console.log('🚀 Creating user...');
+        const result = await createUser(options);
+        
+        if (result.wasDeleted) {
+          console.log('🗑️  Deleted existing user and their tasks');
+        }
+        
+        console.log('✅ User created successfully!');
+        console.log(`📧 Email: ${result.email}`);
+        console.log(`🆔 ID: ${result.id}`);
+        console.log(`👤 Admin: ${result.isAdmin ? 'Yes' : 'No'}`);
+        console.log(`✓  Validated: ${result.isValidated ? 'Yes' : 'No'}`);
+        console.log(`📅 Created: ${result.createdAt.toISOString()}`);
+      } catch (error) {
+        console.error('❌ Error:', (error as Error).message);
+        process.exit(1);
+      }
     });
-
+  
   program.parseAsync().catch((error) => {
     console.error('❌ Error:', error.message);
     process.exit(1);

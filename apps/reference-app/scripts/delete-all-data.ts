@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 /**
  * Delete All Data Script
@@ -11,9 +11,10 @@
  */
 
 import { DynamoDBClient, ScanCommand, BatchWriteItemCommand } from "@aws-sdk/client-dynamodb";
-import { RDSDataClient, ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
+import { ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
 import { readFileSync } from "fs";
 import { createInterface } from "readline";
+import { getDatabaseConfig, createRDSDataClient, withAuroraRetry } from "../app/db/client.js";
 
 interface SST_Outputs {
   auth: {
@@ -30,43 +31,9 @@ interface SST_Outputs {
 const outputs: SST_Outputs = JSON.parse(readFileSync(".sst/outputs.json", "utf8"));
 
 const dynamoTableName = outputs.auth.table;
-const auroraClusterArn = outputs.database.clusterArn;
-const auroraSecretArn = outputs.database.secretArn;
-const databaseName = outputs.database.database;
 
 // AWS Clients
 const dynamoClient = new DynamoDBClient({ region: "eu-west-1" });
-const rdsClient = new RDSDataClient({ region: "eu-west-1" });
-
-// Helper function to retry Aurora resuming operations
-async function withAuroraRetry<T>(operation: () => Promise<T>, maxRetries = 3, delayMs = 10000): Promise<T> {
-  let lastError: any;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      
-      // Check if this is a DatabaseResumingException or Aurora resuming error
-      const isDatabaseResuming = 
-        (error as any)?.name === 'DatabaseResumingException' ||
-        (error as any)?.message?.includes('resuming after being auto-paused') ||
-        ((error as any)?.message?.includes('Aurora DB instance') && (error as any)?.message?.includes('resuming'));
-      
-      if (isDatabaseResuming && attempt < maxRetries) {
-        console.log(`💤 Aurora database is resuming (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs/1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        continue;
-      }
-      
-      // Re-throw if not a resuming exception or max retries reached
-      throw error;
-    }
-  }
-  
-  throw lastError;
-}
 
 // Create readline interface for user input
 const rl = createInterface({
@@ -103,151 +70,140 @@ async function deleteDynamoDBData(): Promise<void> {
 
     console.log(`📊 Found ${scanResult.Items.length} items to delete`);
 
-    // Batch delete items (DynamoDB allows max 25 items per batch)
-    const batches = [];
-    for (let i = 0; i < scanResult.Items.length; i += 25) {
-      const batch = scanResult.Items.slice(i, i + 25);
-      batches.push(batch);
-    }
-
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
-      console.log(`🔄 Deleting batch ${i + 1}/${batches.length} (${batch.length} items)...`);
-
-      const deleteRequests = batch.map(item => {
-        // Extract all keys from the item to build the primary key
-        const keys: any = {};
-        Object.keys(item).forEach(key => {
-          keys[key] = (item as any)[key];
-        });
-        
-        return {
-          DeleteRequest: {
-            Key: keys as any
+    // Delete in batches of 25 (DynamoDB limit)
+    const batchSize = 25;
+    for (let i = 0; i < scanResult.Items.length; i += batchSize) {
+      const batch = scanResult.Items.slice(i, i + batchSize);
+      
+      const deleteRequests = batch.map(item => ({
+        DeleteRequest: {
+          Key: {
+            pk: item.pk,
+            sk: item.sk
           }
-        };
-      });
+        }
+      }));
 
       await dynamoClient.send(new BatchWriteItemCommand({
         RequestItems: {
           [dynamoTableName]: deleteRequests
         }
       }));
+
+      console.log(`🗑️  Deleted batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(scanResult.Items.length / batchSize)}`);
     }
 
-    console.log("✅ DynamoDB data deletion completed");
-  } catch (error) {
-    console.error("❌ Error deleting DynamoDB data:", (error as any).message);
+    console.log("✅ Successfully deleted all items from DynamoDB table");
+  } catch (error: any) {
+    console.error("❌ Error deleting DynamoDB data:", error.message);
+    throw error;
   }
 }
 
 async function deleteAuroraData(): Promise<void> {
-  console.log(`\n🗑️  Deleting data from Aurora database: ${databaseName}`);
+  // Get database configuration
+  const dbConfig = getDatabaseConfig();
+  
+  console.log(`\n🗑️  Deleting data from Aurora database: ${dbConfig.database}`);
+
+  // Create RDS client using centralized client with retry logic
+  const rdsClient = createRDSDataClient(dbConfig);
 
   try {
-    // Delete tasks first (due to foreign key constraint)
-    console.log("🔄 Deleting tasks table data...");
-    await withAuroraRetry(() => 
-      rdsClient.send(new ExecuteStatementCommand({
-        resourceArn: auroraClusterArn,
-        secretArn: auroraSecretArn,
-        database: databaseName,
-        sql: "DELETE FROM tasks;"
-      }))
-    );
+    // Execute SQL to count records
+    const countUsers = await withAuroraRetry(async () => {
+      const result = await rdsClient.send(new ExecuteStatementCommand({
+        resourceArn: dbConfig.resourceArn,
+        secretArn: dbConfig.secretArn,
+        database: dbConfig.database,
+        sql: "SELECT COUNT(*) as count FROM users"
+      }));
+      return result.records?.[0]?.[0]?.longValue || 0;
+    });
 
-    console.log("🔄 Deleting users table data...");
-    await withAuroraRetry(() =>
-      rdsClient.send(new ExecuteStatementCommand({
-        resourceArn: auroraClusterArn,
-        secretArn: auroraSecretArn,
-        database: databaseName,
-        sql: "DELETE FROM users;"
-      }))
-    );
+    const countTasks = await withAuroraRetry(async () => {
+      const result = await rdsClient.send(new ExecuteStatementCommand({
+        resourceArn: dbConfig.resourceArn,
+        secretArn: dbConfig.secretArn,
+        database: dbConfig.database,
+        sql: "SELECT COUNT(*) as count FROM tasks"
+      }));
+      return result.records?.[0]?.[0]?.longValue || 0;
+    });
 
-    // Reset sequences if they exist
-    console.log("🔄 Resetting sequences...");
-    try {
-      await withAuroraRetry(() =>
-        rdsClient.send(new ExecuteStatementCommand({
-          resourceArn: auroraClusterArn,
-          secretArn: auroraSecretArn,
-          database: databaseName,
-          sql: "ALTER SEQUENCE IF EXISTS users_id_seq RESTART WITH 1;"
-        }))
-      );
-      
-      await withAuroraRetry(() =>
-        rdsClient.send(new ExecuteStatementCommand({
-          resourceArn: auroraClusterArn,
-          secretArn: auroraSecretArn,
-          database: databaseName,
-          sql: "ALTER SEQUENCE IF EXISTS tasks_id_seq RESTART WITH 1;"
-        }))
-      );
-    } catch (seqError) {
-      // Sequences might not exist, that's okay
-      console.log("ℹ️  No sequences to reset (this is normal for UUID primary keys)");
+    console.log(`📊 Found ${countUsers} users and ${countTasks} tasks to delete`);
+
+    if (countUsers === 0 && countTasks === 0) {
+      console.log("✅ Aurora database tables are already empty");
+      return;
     }
 
-    console.log("✅ Aurora data deletion completed");
-  } catch (error) {
-    console.error("❌ Error deleting Aurora data:", (error as any).message);
-    
-    // Additional Aurora-specific error guidance
-    if ((error as any)?.message?.includes('resuming') || (error as any)?.name === 'DatabaseResumingException') {
-      console.error("ℹ️  This error occurred because Aurora was auto-paused and needed to resume.");
-      console.error("ℹ️  The script includes retry logic, but the database may need more time to fully resume.");
-      console.error("ℹ️  Try running the script again in a few minutes.");
+    // Delete tasks first (due to foreign key constraints)
+    console.log("🗑️  Deleting tasks...");
+    await withAuroraRetry(async () => {
+      await rdsClient.send(new ExecuteStatementCommand({
+        resourceArn: dbConfig.resourceArn,
+        secretArn: dbConfig.secretArn,
+        database: dbConfig.database,
+        sql: "DELETE FROM tasks"
+      }));
+    });
+
+    // Delete users
+    console.log("🗑️  Deleting users...");
+    await withAuroraRetry(async () => {
+      await rdsClient.send(new ExecuteStatementCommand({
+        resourceArn: dbConfig.resourceArn,
+        secretArn: dbConfig.secretArn,
+        database: dbConfig.database,
+        sql: "DELETE FROM users"
+      }));
+    });
+
+    console.log("✅ Successfully deleted all data from Aurora database");
+  } catch (error: any) {
+    if (error.name === "DatabaseResumingException" || error.message?.includes("resuming after being auto-paused")) {
+      console.error("❌ Aurora database is auto-paused. The retry logic should have handled this. Please try again in a moment.");
+    } else {
+      console.error("❌ Error deleting Aurora data:", error.message);
     }
-    
-    console.error("Full error:", error);
+    throw error;
   }
 }
 
-async function main(): Promise<void> {
-  console.log("🚨 DELETE ALL DATA SCRIPT 🚨");
-  console.log("================================");
-  console.log("This script will delete ALL data from:");
-  console.log(`• DynamoDB table: ${dynamoTableName}`);
-  console.log(`• Aurora database: ${databaseName} (users and tasks tables)`);
-  console.log("");
+async function main() {
+  console.log("⚠️  WARNING: This script will DELETE ALL DATA ⚠️");
+  console.log("\nThis includes:");
+  console.log("- All OpenAuth sessions and state from DynamoDB");
+  console.log("- All users and tasks from Aurora PostgreSQL");
+  console.log("\nThis action CANNOT be undone!");
   
-  const confirmed = await confirmAction("🛑 Are you ABSOLUTELY SURE you want to delete ALL data?");
+  const confirmed = await confirmAction("\n❓ Are you absolutely sure you want to delete all data?");
+  
   if (!confirmed) {
-    console.log("❌ Operation cancelled. No data was deleted.");
+    console.log("\n❌ Operation cancelled");
     rl.close();
     return;
   }
 
-  console.log("\n🚀 Starting data deletion...");
-
-  // Delete DynamoDB data
-  await deleteDynamoDBData();
-
-  // Delete Aurora data
-  await deleteAuroraData();
-
-  console.log("\n🎉 Data deletion process completed!");
-  console.log("📊 Summary:");
-  console.log("• OpenAuth DynamoDB table cleared");
-  console.log("• Aurora users table cleared");
-  console.log("• Aurora tasks table cleared");
-  
-  rl.close();
+  try {
+    // Delete from DynamoDB
+    await deleteDynamoDBData();
+    
+    // Delete from Aurora
+    await deleteAuroraData();
+    
+    console.log("\n🎉 All data has been successfully deleted!");
+  } catch (error) {
+    console.error("\n❌ Failed to delete all data:", error);
+    process.exit(1);
+  } finally {
+    rl.close();
+  }
 }
 
-// Handle script interruption
-process.on('SIGINT', () => {
-  console.log('\n❌ Script interrupted. Exiting...');
-  rl.close();
-  process.exit(0);
-});
-
 // Run the script
-main().catch((error) => {
-  console.error("💥 Fatal error:", error);
-  rl.close();
+main().catch(error => {
+  console.error("Unexpected error:", error);
   process.exit(1);
 });

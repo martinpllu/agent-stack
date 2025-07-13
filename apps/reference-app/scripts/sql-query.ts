@@ -1,58 +1,8 @@
 #!/usr/bin/env tsx
 
 import { Command } from 'commander';
-import { RDSDataClient, ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
-import { readFileSync } from 'fs';
-
-interface SST_Outputs {
-  database: {
-    clusterArn: string;
-    secretArn: string;
-  };
-}
-
-interface DatabaseConfig {
-  resourceArn: string;
-  secretArn: string;
-  database: string;
-  stage: string;
-}
-
-// Load database configuration for a specific stage
-function loadDatabaseConfig(stage: string | null, databaseOverride: string | null = null): DatabaseConfig {
-  if (!stage) {
-    console.error('❌ Stage is required. Specify --stage <stage-name>');
-    console.error('Examples:');
-    console.error('  pnpm sql "SELECT * FROM users;" --stage martin');
-    console.error('  pnpm sql "SELECT * FROM users;" --stage dev');
-    console.error('  pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres');
-    process.exit(1);
-  }
-
-  try {
-    // Load the current SST outputs to get cluster info
-    const outputs: SST_Outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
-    
-    // Use the specified stage's database name
-    const stageDatabaseName = stage.replace(/-/g, "_");
-    
-    return {
-      resourceArn: outputs.database.clusterArn,
-      secretArn: outputs.database.secretArn,
-      database: databaseOverride || stageDatabaseName,
-      stage: stage
-    };
-  } catch (error) {
-    console.error('❌ Error loading database config from .sst/outputs.json');
-    console.error('Make sure SST is running and outputs.json exists');
-    process.exit(1);
-  }
-}
-
-// Create RDS Data client
-const client = new RDSDataClient({
-  region: process.env.AWS_REGION || "eu-west-1",
-});
+import { ExecuteStatementCommand } from "@aws-sdk/client-rds-data";
+import { getDatabaseConfig, createRDSDataClient, withAuroraRetry } from "../app/db/client.js";
 
 // Format and display query results
 function formatResults(result: any): void {
@@ -96,42 +46,61 @@ function formatResults(result: any): void {
 
 // Execute SQL query
 async function executeQuery(sql: string, stage: string, databaseOverride: string | null = null): Promise<void> {
-  const config = loadDatabaseConfig(stage, databaseOverride);
-  
-  console.log(`🔍 Executing: ${sql}`);
-  console.log(`🎯 Stage: ${config.stage}`);
-  console.log(`🗃️  Database: ${config.database}`);
-  console.log('⏳ Running query...');
-  
-  try {
-    const command = new ExecuteStatementCommand({
-      resourceArn: config.resourceArn,
-      secretArn: config.secretArn,
-      database: config.database,
-      sql: sql,
-      includeResultMetadata: true
-    });
+  if (!stage) {
+    console.error('❌ Stage is required. Specify --stage <stage-name>');
+    console.error('Examples:');
+    console.error('  pnpm sql "SELECT * FROM users;" --stage martin');
+    console.error('  pnpm sql "SELECT * FROM users;" --stage dev');
+    console.error('  pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres');
+    process.exit(1);
+  }
 
-    const result = await client.send(command);
+  try {
+    // Get database configuration using centralized client
+    const config = getDatabaseConfig(stage);
+    
+    // Override database name if specified
+    if (databaseOverride) {
+      config.database = databaseOverride;
+    }
+    
+    console.log(`🔍 Executing: ${sql}`);
+    console.log(`🎯 Stage: ${stage}`);
+    console.log(`🗃️  Database: ${config.database}`);
+    console.log('⏳ Running query...');
+    
+    // Create RDS client using centralized client
+    const client = createRDSDataClient(config);
+    
+    // Execute query with retry logic
+    const result = await withAuroraRetry(async () => {
+      return await client.send(new ExecuteStatementCommand({
+        resourceArn: config.resourceArn,
+        secretArn: config.secretArn,
+        database: config.database,
+        sql: sql,
+        includeResultMetadata: true
+      }));
+    });
     
     console.log('✅ Query completed successfully!');
     formatResults(result);
     
   } catch (error) {
-    if ((error as any).name === 'DatabaseResumingException') {
-      console.log('💤 Database is resuming from auto-pause. Retrying in 10 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      return executeQuery(sql, stage, databaseOverride); // Retry
-    }
-    
     console.error('❌ Query failed:');
     console.error((error as any).message);
     
     // If database doesn't exist, suggest how to create it
     if ((error as any).message.includes('database') && (error as any).message.includes('does not exist')) {
+      const stageDatabaseName = stage.replace(/-/g, "_");
       console.log('\n💡 The database doesn\'t exist yet. Try:');
-      console.log(`   npm run sql "CREATE DATABASE ${config.database};" --db=postgres`);
+      console.log(`   npm run sql "CREATE DATABASE ${stageDatabaseName};" --db=postgres`);
       console.log('   Then run your original query again.');
+    }
+    
+    // If config loading failed
+    if ((error as Error).message?.includes('Database configuration not found')) {
+      console.error('Make sure SST is running and outputs.json exists');
     }
     
     process.exit(1);
@@ -155,4 +124,4 @@ program
 program.parseAsync().catch((error) => {
   console.error('❌ Error:', error.message);
   process.exit(1);
-}); 
+});

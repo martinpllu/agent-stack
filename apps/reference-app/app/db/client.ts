@@ -11,40 +11,66 @@
  */
 import { drizzle } from "drizzle-orm/aws-data-api/pg";
 import { RDSDataClient } from "@aws-sdk/client-rds-data";
+import { readFileSync, existsSync } from 'fs';
 import * as schema from "./schema";
 
-// Validate required Aurora Data API environment variables
-function validateDataApiConfig(): {
-  DB_CLUSTER_ARN: string;
-  DB_SECRET_ARN: string;
-  DB_DATABASE: string;
-} {
-  const required = {
-    DB_CLUSTER_ARN: process.env.DB_CLUSTER_ARN,
-    DB_SECRET_ARN: process.env.DB_SECRET_ARN,
-    DB_DATABASE: process.env.DB_DATABASE
+// Database configuration interface
+export interface DatabaseConfig {
+  database: string;
+  secretArn: string;
+  resourceArn: string;
+  region: string;
+}
+
+// SST outputs interface
+interface SST_Outputs {
+  database: {
+    clusterArn: string;
+    secretArn: string;
+    database: string;
   };
+}
 
-  const missing = Object.entries(required)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  if (missing.length > 0) {
+// Load database configuration from environment or SST outputs
+export function getDatabaseConfig(stage?: string): DatabaseConfig {
+  // First try environment variables (for app and auth function)
+  if (process.env.DB_CLUSTER_ARN && process.env.DB_SECRET_ARN && process.env.DB_DATABASE) {
+    return {
+      database: process.env.DB_DATABASE,
+      secretArn: process.env.DB_SECRET_ARN,
+      resourceArn: process.env.DB_CLUSTER_ARN,
+      region: process.env.AWS_REGION || 'us-east-1'
+    };
+  }
+  
+  // For scripts, load from SST outputs
+  const outputsPath = '.sst/outputs.json';
+  if (!existsSync(outputsPath)) {
     throw new Error(
-      `Missing required Aurora Data API environment variables: ${missing.join(', ')}\n` +
-      'This application requires Aurora Data API configuration. Please ensure your SST deployment is configured correctly.'
+      'Database configuration not found. Either set environment variables (DB_CLUSTER_ARN, DB_SECRET_ARN, DB_DATABASE) ' +
+      'or ensure .sst/outputs.json exists (run "npx sst dev" or "npx sst deploy")'
     );
   }
-
-  return required as {
-    DB_CLUSTER_ARN: string;
-    DB_SECRET_ARN: string;
-    DB_DATABASE: string;
+  
+  const outputs: SST_Outputs = JSON.parse(readFileSync(outputsPath, 'utf8'));
+  
+  if (!outputs.database) {
+    throw new Error('Database outputs not found in .sst/outputs.json');
+  }
+  
+  // Use the stage-specific database name if stage is provided
+  const databaseName = stage ? stage.replace(/-/g, "_") : outputs.database.database;
+  
+  return {
+    database: databaseName,
+    secretArn: outputs.database.secretArn,
+    resourceArn: outputs.database.clusterArn,
+    region: process.env.AWS_REGION || 'us-east-1'
   };
 }
 
 // Helper function to retry Aurora resuming operations
-async function withAuroraRetry<T>(operation: () => Promise<T>, maxRetries = 3, delayMs = 5000): Promise<T> {
+export async function withAuroraRetry<T>(operation: () => Promise<T>, maxRetries = 3, delayMs = 5000): Promise<T> {
   let lastError: Error;
   let hasRetried = false;
   
@@ -81,85 +107,43 @@ async function withAuroraRetry<T>(operation: () => Promise<T>, maxRetries = 3, d
   throw lastError!;
 }
 
-// Create Aurora Data API database instance
-const config = validateDataApiConfig();
-
-console.log(`[Database] Initializing Aurora Data API connection`);
-console.log(`[Database] Region: ${process.env.AWS_REGION || "us-east-1"}`);
-console.log(`[Database] Database: ${config.DB_DATABASE}`);
-console.log(`[Database] Cluster: ${config.DB_CLUSTER_ARN?.slice(-12) || 'unknown'}`);
-
-const baseDb = drizzle(
-  new RDSDataClient({
-    region: process.env.AWS_REGION || "us-east-1",
-  }),
-  {
-    database: config.DB_DATABASE,
-    secretArn: config.DB_SECRET_ARN,
-    resourceArn: config.DB_CLUSTER_ARN,
-    schema,
-  }
-);
-
-// Helper function to wrap any thenable (query builder) with retry logic
-function wrapWithRetry<T>(queryBuilder: T): T {
-  if (!queryBuilder || typeof queryBuilder !== 'object') {
-    return queryBuilder;
-  }
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new Proxy(queryBuilder as any, {
-    get(target, prop, receiver) {
-      const originalValue = Reflect.get(target, prop, receiver);
-      
-      // If this is the 'then' method (promise execution), wrap with retry
-      if (prop === 'then' && typeof originalValue === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return function(onResolve?: any, onReject?: any) {
-          return withAuroraRetry(() => target[prop](onResolve, onReject));
-        };
-      }
-      
-      // If this is a function that might return another query builder, wrap the result
-      if (typeof originalValue === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return function (...args: any[]) {
-          const result = originalValue.apply(target, args);
-          
-          // If the result looks like a query builder (has a then method), wrap it
-          if (result && typeof result === 'object' && typeof result.then === 'function') {
-            return wrapWithRetry(result);
-          }
-          
-          return result;
-        };
-      }
-      
-      return originalValue;
-    }
+// Create RDS Data Client with configuration and retry logic
+export function createRDSDataClient(config?: DatabaseConfig): RDSDataClient {
+  const dbConfig = config || getDatabaseConfig();
+  const baseClient = new RDSDataClient({
+    region: dbConfig.region,
   });
+  
+  // Wrap the send method to add retry logic
+  const originalSend = baseClient.send.bind(baseClient);
+  baseClient.send = async function(command: any) {
+    return withAuroraRetry(() => originalSend(command));
+  };
+  
+  return baseClient;
 }
 
-// Create the database instance with Aurora Data API retry logic
-export const db = new Proxy(baseDb, {
-  get(target, prop, receiver) {
-    const originalMethod = Reflect.get(target, prop, receiver);
-    
-    // Wrap database methods to apply retry logic to query builders
-    if (typeof originalMethod === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return function (...args: any[]) {
-        const result = originalMethod.apply(target, args);
-        
-        // If the result is a query builder, wrap it with retry logic
-        if (result && typeof result === 'object' && typeof result.then === 'function') {
-          return wrapWithRetry(result);
-        }
-        
-        return result;
-      };
+// Create Drizzle database instance
+export function createDrizzleDb(stage?: string) {
+  const config = getDatabaseConfig(stage);
+  
+  console.log(`[Database] Initializing Aurora Data API connection`);
+  console.log(`[Database] Region: ${config.region}`);
+  console.log(`[Database] Database: ${config.database}`);
+  console.log(`[Database] Cluster: ${config.resourceArn?.slice(-12) || 'unknown'}`);
+  console.log(`[Database] Retry logic enabled: RDSDataClient wrapped with withAuroraRetry`);
+  
+  // The RDSDataClient already has retry logic, so we don't need proxy wrapping
+  return drizzle(
+    createRDSDataClient(config),
+    {
+      database: config.database,
+      secretArn: config.secretArn,
+      resourceArn: config.resourceArn,
+      schema,
     }
-    
-    return originalMethod;
-  }
-}); 
+  );
+}
+
+// Create the default database instance for app/auth usage
+export const db = createDrizzleDb(); 

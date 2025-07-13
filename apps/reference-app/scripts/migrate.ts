@@ -1,30 +1,10 @@
 #!/usr/bin/env tsx
 
 import { Command } from 'commander';
-import { readFileSync } from 'fs';
-import { drizzle } from 'drizzle-orm/aws-data-api/pg';
 import { migrate } from 'drizzle-orm/aws-data-api/pg/migrator';
-import { RDSDataClient } from '@aws-sdk/client-rds-data';
-import * as schema from '../app/db/schema.js';
+import { createDrizzleDb, getDatabaseConfig } from '../app/db/client.js';
 
-interface SST_Outputs {
-  database: {
-    clusterArn: string;
-    secretArn: string;
-    database: string;
-  };
-}
-
-interface DatabaseConfig {
-  database: string;
-  secretArn: string;
-  resourceArn: string;
-  region: string;
-  stage: string;
-}
-
-// Load and set up environment from SST outputs for a specific stage
-function setupEnvironment(stage: string | null): DatabaseConfig {
+async function runMigrations(stage: string): Promise<void> {
   if (!stage) {
     console.error('❌ Stage is required. Specify --stage <stage-name>');
     console.error('Examples:');
@@ -35,59 +15,28 @@ function setupEnvironment(stage: string | null): DatabaseConfig {
   }
 
   try {
-    // Load the current SST outputs to get cluster info
-    const outputs: SST_Outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf8'));
-    
-    // Use the specified stage's database name
-    const stageDatabaseName = stage.replace(/-/g, "_");
-    
+    console.log('🚀 Running database migrations...');
     console.log(`🎯 Target Stage: ${stage}`);
-    console.log(`🗃️  Database: ${stageDatabaseName}`);
     console.log(`🔗 Using Aurora Data API`);
     
-    return {
-      database: stageDatabaseName,
-      secretArn: outputs.database.secretArn,
-      resourceArn: outputs.database.clusterArn,
-      region: process.env.AWS_REGION || "eu-west-1",
-      stage: stage
-    };
-  } catch (error) {
-    console.error('❌ Error loading database config from .sst/outputs.json');
-    console.error('Make sure SST is running and outputs.json exists');
-    process.exit(1);
-  }
-}
-
-async function runMigrations(stage: string): Promise<void> {
-
-  try {
-    console.log('🚀 Running database migrations...');
+    // Get database configuration
+    const config = getDatabaseConfig(stage);
+    console.log(`🗃️  Database: ${config.database}`);
     
-    const config = setupEnvironment(stage);
-    
-    // Create RDS Data client
-    const rdsClient = new RDSDataClient({ 
-      region: config.region 
-    });
-    
-    // Create Drizzle instance for Data API
-    const db = drizzle(rdsClient, {
-      database: config.database,
-      secretArn: config.secretArn,
-      resourceArn: config.resourceArn,
-      schema
-    });
+    // Create database instance using centralized client with retry logic
+    const db = createDrizzleDb(stage);
     
     // Run migrations using the official Data API migrator
     await migrate(db, { 
       migrationsFolder: './drizzle' 
     });
     
-    console.log(`🎉 All migrations completed successfully for stage: ${config.stage}!`);
+    console.log(`🎉 All migrations completed successfully for stage: ${stage}!`);
   } catch (error) {
     console.error('❌ Migration failed:', error);
-    console.error(error);
+    if ((error as Error).message?.includes('Database configuration not found')) {
+      console.error('Make sure SST is running and outputs.json exists');
+    }
     process.exit(1);
   }
 }
