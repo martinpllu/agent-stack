@@ -5,9 +5,41 @@ alwaysApply: true
 priority: high
 ---
 
-# Workspace structure
+# Technology Stack
 
-This workspace structure represents a modern full-stack serverless application pattern using React Router v7 and SST v3.
+This is a modern full-stack serverless application using AWS services, with type safety from database to frontend.
+
+## Frontend
+- **React Router v7** (new name for Remix) - Full-stack React framework
+- **React 19** with TypeScript
+- **Tailwind CSS v4** + Radix UI components
+- **Vite** for building
+
+## Backend
+- **Hono** - Lightweight API framework
+- **AWS Lambda** functions
+- **OpenAuth** for authentication
+
+## Database
+- **PostgreSQL** (AWS Aurora Serverless v2)
+- **Drizzle ORM** for type-safe queries
+- **DynamoDB** for auth sessions
+
+## Infrastructure
+- **SST v3** - Serverless framework managing:
+  - VPC with managed NAT
+  - Aurora PostgreSQL clusters
+  - Lambda functions
+  - DynamoDB tables
+  - React app hosting
+
+## Testing & Dev Tools
+- **pnpm** for package management
+- **Playwright** for E2E tests
+- **Vitest** for unit tests
+- **ESLint** for linting
+
+# Workspace structure
 
 ## Application Code (/app)
 
@@ -80,8 +112,7 @@ Version-controlled database schema migrations following a sequential naming patt
 - Always run `[ -f ./env.sh ] && source ./env.sh` before any AWS CLI commands. 
 - Only run read-only AWS CLI commands unless explicitly instructed by the user.
 
-# General
+# Code standards
 
-- Always use `pnpm` instead of `npm`
 - Typescript and TSX files should generally use kebab-case, with a `.test` suffix for tests, e.g. `auth.ts`, `auth.test.ts`, `home.tsx`.
 - Use comments sparingly. Comments should describe WHY the code does something, not WHAT is does. Never use comments to describe a point-in-time change, e.g. `// No longer using XYZ`.
