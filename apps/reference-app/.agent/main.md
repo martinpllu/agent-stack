@@ -85,6 +85,7 @@ File-based routing directory following React Router v7 conventions. Each file re
 - `/scripts/create-[entity].ts`: Data creation utilities for development and testing. Examples include `create-user.ts` for user creation with proper role assignment and password hashing.
 - `/scripts/sql-query.ts`: Direct SQL query executor for debugging and maintenance tasks. This provides a safe way to run ad-hoc queries against the database with proper credential management.
 - `/scripts/load-env.ts`: Environment configuration loader ensuring all scripts have access to necessary environment variables and AWS credentials.
+- `/scripts/delete-all-data.ts`: **DANGEROUS** - Database cleanup utility that completely wipes all data from the database. **IMPORTANT: This script should NEVER be run automatically by agents or assistants. It must only be executed manually by developers who fully understand the consequences. This script will permanently delete all data without possibility of recovery.**
 
 ## Database Migrations (/drizzle)
 Version-controlled database schema migrations following a sequential naming pattern (e.g., `0000_initial_schema.sql`, `0001_add_user_roles.sql`). The `/drizzle/meta/` directory contains migration metadata tracking which migrations have been applied to each environment.
