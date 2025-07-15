@@ -11,3 +11,7 @@
 # Playwright test artifacts
 playwright-report/
 test-results/
+
+# Added by dotagent: ignore exported AI rule files
+CLAUDE.md
+.cursor/rules/**

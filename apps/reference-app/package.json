@@ -16,7 +16,8 @@
     "migrate": "tsx scripts/migrate.ts",
     "sql": "tsx scripts/sql-query.ts",
     "create-user": "tsx scripts/create-user.ts",
-    "delete-all-data": "tsx scripts/delete-all-data.ts"
+    "delete-all-data": "tsx scripts/delete-all-data.ts",
+    "dotagent": "dotagent export --formats claude,cursor"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.844.0",
@@ -36,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "commander": "^14.0.0",
+    "dotagent": "^2.7.0",
     "drizzle-orm": "^0.44.2",
     "hono": "^4.7.4",
     "isbot": "^5.1.27",
