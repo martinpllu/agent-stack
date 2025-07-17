@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { redirect, useActionData, useNavigation } from "react-router";
+import { redirect, useActionData, useNavigation, Form, useNavigate } from "react-router";
 import { setTokens } from "~/auth/auth-server";
 import { Resource } from "sst";
 
@@ -104,6 +104,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const actionData = useActionData();
   const navigation = useNavigation();
+  const navigate = useNavigate();
   const isSubmitting = navigation.state === "submitting";
 
   // Use email from action data if available (when code was sent successfully)
@@ -114,7 +115,14 @@ export default function LoginPage() {
     if (actionData?.success && step === "email") {
       setStep("code");
     }
-  }, [actionData, step]);
+  }, [actionData]);
+  
+  // Also store email when moving to code step
+  useEffect(() => {
+    if (actionData?.email && !email) {
+      setEmail(actionData.email);
+    }
+  }, [actionData?.email]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -142,7 +150,7 @@ export default function LoginPage() {
 
 
         {step === "email" ? (
-          <form method="post" className="mt-8 space-y-6">
+          <Form method="post" className="mt-8 space-y-6">
             <input type="hidden" name="intent" value="send-code" />
             <div>
               <label htmlFor="email" className="sr-only">
@@ -156,7 +164,8 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                disabled={isSubmitting}
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Email address"
               />
             </div>
@@ -166,13 +175,23 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isSubmitting ? "Sending..." : "Send Verification Code"}
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </div>
+                ) : (
+                  "Send Verification Code"
+                )}
               </button>
             </div>
-          </form>
+          </Form>
         ) : (
           <div className="mt-8 space-y-6">
-            <form method="post" className="space-y-6">
+            <Form method="post" className="space-y-6">
               <input type="hidden" name="intent" value="verify-code" />
               <input type="hidden" name="email" value={currentEmail} />
               <div>
@@ -184,7 +203,8 @@ export default function LoginPage() {
                   name="code"
                   type="text"
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  disabled={isSubmitting}
+                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Enter verification code"
                 />
               </div>
@@ -194,13 +214,27 @@ export default function LoginPage() {
                   disabled={isSubmitting}
                   className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
-                  {isSubmitting ? "Verifying..." : "Verify Code"}
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Verifying...
+                    </div>
+                  ) : (
+                    "Verify Code"
+                  )}
                 </button>
               </div>
-            </form>
+            </Form>
             <button
               type="button"
-              onClick={() => setStep("email")}
+              onClick={() => {
+                setStep("email");
+                // Navigate to clear action data
+                navigate(".", { replace: true });
+              }}
               className="w-full text-center text-sm text-indigo-600 hover:text-indigo-500"
             >
               Back to email entry
