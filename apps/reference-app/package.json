@@ -17,7 +17,7 @@
     "sql": "tsx scripts/sql-query.ts",
     "create-user": "tsx scripts/create-user.ts",
     "delete-all-data": "tsx scripts/delete-all-data.ts",
-    "dotagent": "dotagent export --formats claude,cursor"
+    "dotagent": "dotagent export --formats claude,cursor --no-gitignore"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.844.0",
