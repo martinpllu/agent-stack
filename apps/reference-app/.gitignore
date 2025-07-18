@@ -15,3 +15,5 @@ test-results/
 # Added by dotagent: ignore exported AI rule files
 CLAUDE.md
 .cursor/rules/**
+
+.pnpm-store/
