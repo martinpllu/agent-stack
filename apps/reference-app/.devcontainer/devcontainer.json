@@ -1,0 +1,38 @@
+{
+    "name": "Reference App Dev Environment",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+      "ghcr.io/devcontainers/features/node:1": {
+        "version": "lts"
+      },
+      "ghcr.io/devcontainers/features/python:1": {
+        "version": "3.11"
+      },
+      "ghcr.io/devcontainers/features/aws-cli:1": {},
+      "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+      "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-vscode.vscode-typescript-next",
+          "dbaeumer.vscode-eslint",
+          "esbenp.prettier-vscode",
+          "bradlc.vscode-tailwindcss",
+          "ms-playwright.playwright"
+        ],
+        "settings": {
+          "terminal.integrated.defaultProfile.linux": "zsh"
+        }
+      }
+    },
+    "onCreateCommand": "sudo mkdir -p /home/vscode/.cursor-server && sudo chown -R vscode:vscode /home/vscode/.cursor-server",
+    "postCreateCommand": "echo 'Dev environment ready!'",
+    "remoteUser": "vscode",
+    "containerEnv": {
+      "NODE_ENV": "development"
+    },
+    "runArgs": [
+      "--privileged"
+    ]
+  }
