@@ -1,1 +1,4 @@
-- TODO
+- Remember that all changes must be verified with an automated test.
+- Use vitest for unit tests. Put unit tests alongside the file that they test, with the suffix `.test.ts`.
+- Integration tests have the suffix `.integ.test.ts`.
+- Use Playwright for e2e tests, with the suffix `.e2e.test.ts`.
