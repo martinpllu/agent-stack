@@ -10,13 +10,55 @@ priority: high
 - The `docs` folder contains everything that you need to know when working with this application. Always list the docs directory to familiarise yourself with the names of the available docs, and read individual files that are relevant to your task.
 - It's extremely important to ensure that the docs are complete and accurate. Follow the 'boy scout' principle of leaving the docs better than you found it. Write the docs that you would hope to find when you're next working on a similar task. Feel free to create new markdown files in the `docs` folder when appropriate - use a descriptive name in kebab-case. Keep docs succinct to make best use of context.
 
-# Verifying code changes with tests
+# Verifying code changes
 
-- Every code change that you make MUST be verified via an automated test. Changes are NOT DONE until a test has proven that it is successful.
-- To test the UI: write Playwright tests with Page Object Models. 
-- Write utilities for common testing processes, e.g. creating users, creating or resetting data, navigating to part of the app. 
-- Document test processes in the `docs` folder, with the prefix `test-`
-- Re-run related 
+## Verification Requirements
+Every code change MUST be verified to work correctly. The method of verification depends on the type and risk of the change:
+
+### Automated Tests Required For:
+- **New features** - User-facing functionality needs e2e tests
+- **Bug fixes** - Prevent regressions with targeted tests
+- **Critical paths** - Authentication, payments, data operations
+- **Complex logic** - Business rules, calculations, state management
+- **API changes** - Ensure contracts are maintained
+
+### Interactive Verification Sufficient For:
+- **UI/UX tweaks** - Styling, copy changes, layout adjustments
+- **Refactoring** - Code cleanup with no behavior change
+- **Documentation** - Updates to docs, comments, READMEs
+- **Development tools** - Scripts, debugging utilities
+- **Simple configuration** - Environment variables, feature flags
+
+## Verification Methods
+
+1. **Automated Tests**: Write Playwright tests with Page Object Models for UI changes, or unit tests for logic
+2. **Interactive Verification**: Use `pnpm tsx scripts/debug-browser.ts` to programmatically verify changes work as expected
+3. **Database State Verification**: Use `pnpm tsx scripts/sql-query.ts` to verify data changes, check constraints, and confirm expected database state
+4. **Debug Scripts**: Create reproducible verification scripts in `/scripts/debug-scenarios/`
+5. **Type Checking**: Run `pnpm typecheck` to catch type errors
+6. **Existing Test Suite**: Run related tests to ensure no regressions
+
+### Example Interactive Verification Flow
+```bash
+# 1. Use debug browser to perform user action
+pnpm tsx scripts/debug-browser.ts
+# In REPL: await debug.loginAsAdmin(); await debug.goto('/admin/users'); await debug.click('button:has-text("Delete")');
+
+# 2. Verify database state
+pnpm tsx scripts/sql-query.ts "SELECT * FROM users WHERE email = 'deleted-user@test.com'"
+# Confirm user is marked as deleted or removed
+
+# 3. Verify UI reflects the change
+# In debug browser: await debug.inspect()
+# Confirm user no longer appears in list
+```
+
+## Best Practices
+- Document verification approach in commit messages
+- For interactive verification, describe what was tested
+- Consider the risk and impact when choosing verification method
+- Write utilities for common testing processes
+- Document test processes in the `docs` folder with prefix `test-` 
 
 # Technology Stack
 
@@ -100,6 +142,12 @@ File-based routing directory following React Router v7 conventions. Each file re
 - `/scripts/load-env.ts`: Environment configuration loader ensuring all scripts have access to necessary environment variables and AWS credentials.
 - `/scripts/delete-all-data.ts`: **DANGEROUS** - Database cleanup utility that completely wipes all data from the database. **IMPORTANT: This script should NEVER be run automatically by agents or assistants. It must only be executed manually by developers who fully understand the consequences. This script will permanently delete all data without possibility of recovery.**
 
+## Debugging Utilities (/scripts and /tests/test-helpers)
+- `/scripts/debug-browser.ts`: Interactive browser debugging REPL. Run with `pnpm tsx scripts/debug-browser.ts` to launch a browser with helper commands for navigation, login, element inspection, and troubleshooting. Useful for debugging both tests and general application issues.
+- `/scripts/debug-scenarios/`: Pre-built debugging scripts for common workflows like admin flows and reproducing test failures.
+- `/tests/test-helpers/debug-on-failure.ts`: Enhanced error reporting that automatically captures screenshots, DOM, visible text, and interactive elements when tests fail. Add to any test with `test.afterEach(async ({ page }, testInfo) => await captureDebugInfo(page, testInfo))`.
+- `/tests/test-helpers/login-helper.ts`: Robust login helpers with debug output for authentication flows.
+
 ## Database Migrations (/drizzle)
 Version-controlled database schema migrations following a sequential naming pattern (e.g., `0000_initial_schema.sql`, `0001_add_user_roles.sql`). The `/drizzle/meta/` directory contains migration metadata tracking which migrations have been applied to each environment.
 
@@ -133,8 +181,8 @@ Version-controlled database schema migrations following a sequential naming patt
 
 Always consider doing these checks after making changes:
 
+- Ensure that all changes have been verified, as per "Verifying code changes" above.
 - Run `pnpm typecheck`. 
-- Ensure that all changes have been verified by tests, as per "Verifying code changes with tests".
 - Run tests to ensure no regressions.
 - Update docs if required.
 - Create an Architecture Decision Record if appropriate.

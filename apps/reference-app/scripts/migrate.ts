@@ -8,8 +8,8 @@ async function runMigrations(stage: string): Promise<void> {
   if (!stage) {
     console.error('❌ Stage is required. Specify --stage <stage-name>');
     console.error('Examples:');
-    console.error('  pnpm migrate --stage martin');
     console.error('  pnpm migrate --stage dev');
+    console.error('  pnpm migrate --stage staging');
     console.error('  pnpm migrate --stage production');
     process.exit(1);
   }
@@ -47,7 +47,7 @@ program
   .name('migrate')
   .description('Run database migrations for SST applications')
   .version('1.0.0')
-  .requiredOption('-s, --stage <stage>', 'Stage name (e.g., martin, dev, production)')
+  .requiredOption('-s, --stage <stage>', 'Stage name (e.g., dev, staging, production)')
   .action(async () => {
     const { stage } = program.opts();
     await runMigrations(stage);

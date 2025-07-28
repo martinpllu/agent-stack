@@ -2,114 +2,180 @@ import { requireAdminRole } from "~/auth/auth-middleware";
 import { UserRepository } from "~/db/repositories/user.repository";
 import { AppError } from "~/utils/error-handler";
 import type { User } from "~/types/user";
-
-// Types for admin user management
-interface UnvalidatedUserSummary {
-  id: string;
-  email: string;
-  createdAt: Date;
-}
-
-interface AdminUsersLoaderData {
-  users: UnvalidatedUserSummary[];
-}
-
-interface AdminActionData {
-  success?: boolean;
-  user?: User;
-}
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import { useLoaderData, useFetcher } from "react-router";
+import { Layout } from "~/components/layout";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 
 const userRepository = new UserRepository();
 
-// Admin loader for getting unvalidated users
-export async function loader({ request }: { request: Request }): Promise<AdminUsersLoaderData> {
-  await requireAdminRole(request);
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { user } = await requireAdminRole(request);
   
-  const unvalidatedUsers = await userRepository.findUnvalidatedUsers();
+  const allUsers = await userRepository.findAll();
   
-  return {
-    users: unvalidatedUsers.map((user: User): UnvalidatedUserSummary => ({
-      id: user.id,
-      email: user.email,
-      createdAt: user.createdAt,
-    }))
-  };
+  return Response.json({
+    users: allUsers.map((u: User) => ({
+      id: u.id,
+      email: u.email,
+      createdAt: u.createdAt,
+      isValidated: u.isValidated,
+      isAdmin: u.isAdmin
+    })),
+    currentUser: user.properties
+  });
 }
 
-// Admin action for validating users
-export async function action({ request }: { request: Request }): Promise<AdminActionData> {
+export async function action({ request }: ActionFunctionArgs) {
   await requireAdminRole(request);
   
-  const url = new URL(request.url);
-  const userId = url.searchParams.get("userId");
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  const userId = formData.get("userId") as string;
   
   if (!userId) {
     throw AppError.badRequest("User ID required");
   }
   
-  if (request.method === "POST") {
+  if (intent === "validate") {
     const user = await userRepository.validate(userId);
-    
     if (!user) {
       throw AppError.notFound("User not found");
     }
-    
-    return { success: true, user };
+    return Response.json({ success: true, user });
+  } else if (intent === "delete") {
+    await userRepository.delete(userId);
+    return Response.json({ success: true });
+  } else if (intent === "toggleAdmin") {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw AppError.notFound("User not found");
+    }
+    await userRepository.update(userId, { isAdmin: !user.isAdmin });
+    return Response.json({ success: true });
   }
   
-  throw AppError.badRequest("Method not allowed");
+  throw AppError.badRequest("Invalid action");
 }
 
-export default function AdminUsers({ loaderData }: { loaderData: AdminUsersLoaderData }) {
-  const { users } = loaderData;
-  
-  const handleValidateUser = async (userId: string) => {
-    const formData = new FormData();
-    formData.append("intent", "validate");
-    
-    await fetch(`/admin/users?userId=${userId}`, {
-      method: "POST",
-      body: formData,
-    });
-    
-    // Reload the page to show updated data
-    window.location.reload();
-  };
+export function meta() {
+  return [
+    { title: "User Management - Admin" },
+    { name: "description", content: "Manage user accounts and permissions" },
+  ];
+}
+
+interface LoaderData {
+  users: Array<{
+    id: string;
+    email: string;
+    createdAt: Date;
+    isValidated: boolean;
+    isAdmin: boolean;
+  }>;
+  currentUser: any;
+}
+
+export default function AdminUsers() {
+  const { users, currentUser } = useLoaderData<LoaderData>();
+  const fetcher = useFetcher();
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">User Management</h1>
-      
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Unvalidated Users</h2>
+    <Layout user={currentUser}>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage user accounts and permissions
+          </p>
         </div>
         
-        {users.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">
-            No unvalidated users
-          </div>
-        ) : (
-                     <div className="divide-y divide-gray-200">
-             {users.map((user: UnvalidatedUserSummary) => (
-              <div key={user.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{user.email}</div>
-                  <div className="text-sm text-gray-500">
-                    Registered: {new Date(user.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleValidateUser(user.id)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Validate
-                </button>
+        <Card>
+          <CardHeader>
+            <CardTitle>All Users</CardTitle>
+            <CardDescription>
+              Total users: {users.length}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {users.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No users found
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full" data-testid="users-table">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Email</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Role</th>
+                      <th className="text-left p-2">Created</th>
+                      <th className="text-left p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.id} className="border-b" data-testid="user-row">
+                        <td className="p-2">{user.email}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            user.isValidated ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {user.isValidated ? 'Validated' : 'Unvalidated'}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            user.isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {user.isAdmin ? 'Admin' : 'User'}
+                          </span>
+                        </td>
+                        <td className="p-2 text-sm text-muted-foreground">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex gap-2">
+                            {!user.isValidated && (
+                              <fetcher.Form method="post" className="inline">
+                                <input type="hidden" name="intent" value="validate" />
+                                <input type="hidden" name="userId" value={user.id} />
+                                <Button type="submit" size="sm" variant="outline">
+                                  Validate
+                                </Button>
+                              </fetcher.Form>
+                            )}
+                            {user.email !== currentUser.email && (
+                              <>
+                                <fetcher.Form method="post" className="inline">
+                                  <input type="hidden" name="intent" value="toggleAdmin" />
+                                  <input type="hidden" name="userId" value={user.id} />
+                                  <Button type="submit" size="sm" variant="outline">
+                                    {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                                  </Button>
+                                </fetcher.Form>
+                                <fetcher.Form method="post" className="inline">
+                                  <input type="hidden" name="intent" value="delete" />
+                                  <input type="hidden" name="userId" value={user.id} />
+                                  <Button type="submit" size="sm" variant="destructive">
+                                    Delete
+                                  </Button>
+                                </fetcher.Form>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </Layout>
   );
-} 
+}
