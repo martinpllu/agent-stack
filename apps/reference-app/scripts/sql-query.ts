@@ -49,8 +49,8 @@ async function executeQuery(sql: string, stage: string, databaseOverride: string
   if (!stage) {
     console.error('❌ Stage is required. Specify --stage <stage-name>');
     console.error('Examples:');
-    console.error('  pnpm sql "SELECT * FROM users;" --stage martin');
     console.error('  pnpm sql "SELECT * FROM users;" --stage dev');
+    console.error('  pnpm sql "SELECT * FROM users;" --stage staging');
     console.error('  pnpm sql "CREATE DATABASE newstage;" --stage dev --db postgres');
     process.exit(1);
   }
@@ -114,7 +114,7 @@ program
   .description('Execute SQL queries against SST database')
   .version('1.0.0')
   .argument('<query>', 'SQL query to execute')
-  .requiredOption('-s, --stage <stage>', 'Stage name (e.g., martin, dev, production)')
+  .requiredOption('-s, --stage <stage>', 'Stage name (e.g., dev, staging, production)')
   .option('--db <database>', 'Override database name (useful for connecting to postgres initially)')
   .action(async (query: string) => {
     const { stage, db } = program.opts();

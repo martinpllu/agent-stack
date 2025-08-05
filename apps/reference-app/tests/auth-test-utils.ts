@@ -14,14 +14,23 @@ export interface CodeCapture {
 }
 
 /**
+ * Get the test stage from environment or use current SST stage
+ */
+function getTestStage(): string {
+  return process.env.TEST_STAGE || process.env.SST_STAGE || 'test';
+}
+
+/**
  * Creates test users using the create-user script
  */
 export async function createTestUsers(users: TestUser[], clean = true): Promise<void> {
+  const stage = getTestStage();
+  
   for (const user of users) {
     const args = [
       'tsx', 'scripts/create-user.ts',
       '--email', user.email,
-      '--stage', 'martin'
+      '--stage', stage
     ];
     
     if (user.isAdmin) {
@@ -33,7 +42,10 @@ export async function createTestUsers(users: TestUser[], clean = true): Promise<
     }
 
     try {
-      execSync(args.join(' '), { 
+      // Use proper command with arguments array
+      const command = args[0];
+      const commandArgs = args.slice(1);
+      execSync(`${command} ${commandArgs.join(' ')}`, { 
         stdio: 'pipe',
         cwd: process.cwd()
       });

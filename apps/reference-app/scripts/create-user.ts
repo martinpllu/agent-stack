@@ -113,11 +113,17 @@ if (process.argv[1] === __filename) {
     .description('Create a user in the database')
     .version('1.0.0')
     .requiredOption('-e, --email <email>', 'User email address')
-    .requiredOption('-s, --stage <stage>', 'Stage name (e.g., martin, dev, production)')
+    .requiredOption('-s, --stage <stage>', 'Stage name (e.g., dev, staging, production)')
     .option('-a, --admin', 'Create user as admin', false)
     .option('-c, --clean', 'Delete existing user before creating', false)
     .action(async () => {
-      const options = program.opts() as CreateUserOptions;
+      const cliOptions = program.opts();
+      const options: CreateUserOptions = {
+        email: cliOptions.email,
+        stage: cliOptions.stage,
+        isAdmin: cliOptions.admin, // Map 'admin' to 'isAdmin'
+        clean: cliOptions.clean
+      };
       
       try {
         console.log('🚀 Creating user...');

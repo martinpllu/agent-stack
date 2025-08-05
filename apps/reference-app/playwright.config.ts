@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import { getDevServerUrl } from './scripts/get-dev-server-url';
+
+// Dynamically detect the dev server URL to avoid hardcoding ports
+const baseURL = process.env.BASE_URL || getDevServerUrl();
+console.log(`Using base URL: ${baseURL}`);
 
 export default defineConfig({
   testDir: './tests',
@@ -8,7 +13,7 @@ export default defineConfig({
   workers: 1, // Single worker to avoid auth conflicts
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173', // React Router dev server default port
+    baseURL,
     trace: 'on-first-retry',
   },
 
@@ -20,9 +25,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true, // Use existing SST dev server
-    timeout: 10 * 1000, // Shorter timeout since server should be running
+    // Don't start a new server - expect SST dev to be running
+    // as per the SST development workflow documentation
+    command: 'echo "Expecting SST dev server to be already running"',
+    url: baseURL,
+    reuseExistingServer: true, // Always reuse existing server
+    timeout: 5 * 1000, // Short timeout since server should already be running
   },
 });

@@ -1,3 +1,3 @@
 - Always run `pnpm typecheck` after making Typescript changes, unless you're running via a tool like Cursor that handles this automatically.
-- Typescript and TSX file names use kebab-case, with a `.test` suffix for tests, e.g. `auth.ts`, `auth.test.ts`, `home.tsx`, `home.test.tsx`.
+- Typescript and TSX file names use kebab-case.
 - Use comments sparingly. Comments should describe WHY the code does something, not WHAT is does. Never use comments to describe a point-in-time change, e.g. `// No longer using XYZ`.

@@ -91,4 +91,33 @@ export class UserRepository {
     
     return result[0] || null;
   }
+
+  async findAll(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+  }
+
+  async update(id: string, data: Partial<User>): Promise<User | null> {
+    const result = await db
+      .update(users)
+      .set({ 
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result[0] || null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning();
+    
+    return result.length > 0;
+  }
 } 

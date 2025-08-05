@@ -51,6 +51,19 @@ export function Layout({ children, user }: LayoutProps) {
                     Tasks
                   </Link>
                 </NavigationMenuItem>
+                {user?.isAdmin && (
+                  <NavigationMenuItem>
+                    <Link 
+                      to="/admin/users" 
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        location.pathname.startsWith("/admin") && "bg-accent text-accent-foreground"
+                      )}
+                    >
+                      Admin
+                    </Link>
+                  </NavigationMenuItem>
+                )}
               </NavigationMenuList>
             </NavigationMenu>
           </nav>
