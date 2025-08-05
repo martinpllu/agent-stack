@@ -1,41 +1,13 @@
-# Agent Stack
+# `agent-dx`
 
-Agent Stack is a development environment that allows AI agents to develop web apps with maximum autonomy. 
+**Give AI agents a great developer experience!**
 
-It's designed for teams who want to use AI to rapidly build production-quality web apps that they can host on their own AWS infrastructure.
+`agent-dx` helps you set up your application for development with AI agents.
 
-It consists of:
+After going through the setup process, your agents will have:
 
-- An opinionated serverless web stack providing a clear foundation for the agent to work with. Technology choices include SST v3, React Router v7, Tailwind CSS, Drizzle, and Hono. 
-- An MCP server providing structured documentation on this tech stack for AI agents running in tools like Cursor, Claude Code or OpenCode.
+- **Orientation guide** A compact, comprehensive overview of your application's architecture and code layout, the available development tools, and pointers to more specific documentation.
+- **Agent-friendly tools** Tools that give your agent 'eyes' and 'hands' to work with your development environment: start servers, access logs, query databases, set up and tear down test data, interactively debug the app...
+- **Agent Journal** A simple MCP server that agents use to add key milestones, observations and problems to a Markdown journal.
+- **Continuous improvement** A prompt that reads the journal and suggests changes to evolve your app, documentation and tools.
 
-...more docs
-
-## STATUS
-
-The project is in early development. The high level build strategy is as follows:
-
-- Implement a fully featured app in `apps/reference-app` showcasing all the core patterns
-- Use AI to generate comprehensive docs from these patterns in `apps/docs-server/pages`, e.g. `auth.md`, `adding-an-api-route.md`. Update the table of contents in `intro.md` to reference these pages (the MCP server docs instruct the agent to run `read-docs intro` and then run `read-docs` commands for anything else it needs to know about)
-- Add a new command `create-app` for use in a new workspace - this copies the reference app into the workspace (perhaps downloading a zip) as the basis for a new application.
-- Process for customising the reference app/docs to suit an org's own requirements.
-- agent-stack.json (or .ts) file allowing configuration of framework choices, e.g. relational vs dynamo
-- Stack migrations - keep track of the version of agent-stack in agent-stack.json. When upgrading to a new version, provide migration instructions for the agent via the MCP server.
-
-
-## TODO 
-
-- [ ] reference-app auth (SST Auth or Clerk).
-- [ ] reference-app CRUD features
-- [ ] reference-app UI component library (think Claude has gone for radix, would something like shadcn be preferable?)
-- [ ] reference-app observability (powertools?)
-- [ ] browser MCP (Playwright MCP seems to be good)
-
-
-## Rest of README 
-
-...more docs
-
-## License
-
-MIT 
